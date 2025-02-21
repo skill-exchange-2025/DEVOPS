@@ -22,7 +22,11 @@ pipeline {
                 }
             }
         }
-
+        stage('Deploy Jar') {
+            steps {
+                sh 'java -jar target/*.jar &'
+              }
+       }
 
     }
 }
