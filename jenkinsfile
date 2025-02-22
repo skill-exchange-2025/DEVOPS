@@ -5,54 +5,38 @@ pipeline {
         maven "M3"
     }
 
- environment {
+    environment {
         DOCKER_IMAGE = "tp-foyer"
         DOCKER_TAG = "latest"
+        BRANCH_NAME = "OKBA"
     }
+
+    parameters {
+        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Branch to build')
+        string(name: 'DOCKER_TAG', defaultValue: 'latest', description: 'Docker image tag')
+    }
+
     stages {
 
         stage('Git') {
             steps {
-                // Get some code from a GitHub repository
-                git 'https://github.com/skill-exchange-2025/DEVOPS.git'
-
+                git branch: "${BRANCH_NAME}", url: 'https://github.com/skill-exchange-2025/DEVOPS.git'
             }
         }
 
         stage('Maven Build') {
             steps {
                 // Run Maven build with tests
-                bat "mvn clean test package"
+                bat "mvn clean package -DskipTests"
             }
         }
 
         stage('Maven Test') {
             steps {
-
-                // Run Maven build with tests
+                // Run Maven tests
                 bat "mvn test"
             }
         }
-          stage('Docker Build') {
-                    steps {
-                        script {
-                            docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
-                        }
-                    }
-                }
-
-                stage('Docker Push') {
-                    when {
-                        expression { env.BRANCH_NAME == 'master' }
-                    }
-                    steps {
-                        script {
-                            docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
-                                docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}").push()
-                            }
-                        }
-                    }
-                }
 
         stage('SonarQube analysis') {
             steps {
@@ -61,8 +45,24 @@ pipeline {
                 }
             }
         }
-    }
 
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}").push()
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    bat "docker stop ${DOCKER_IMAGE} || true && docker rm ${DOCKER_IMAGE} || true"
+                    bat "docker run -d --name ${DOCKER_IMAGE} -p 8089:8089 ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                }
+            }
+        }
+    }
 
     post {
         always {
@@ -70,7 +70,12 @@ pipeline {
             junit '**/target/surefire-reports/*.xml' // Updated pattern
             archiveArtifacts 'target/*.jar' // Archives all JARs
         }
-
+        success {
+            echo "Build and Deployment Successful!"
+        }
+        failure {
+            echo "Build or Deployment Failed."
+        }
         unstable {
             echo "Build is unstable due to failing tests."
         }
