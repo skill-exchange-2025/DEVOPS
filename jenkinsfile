@@ -8,9 +8,6 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                // Clone the repository
-                git 'https://github.com/skill-exchange-2025/DEVOPS.git'
-
                 // Run Maven build with tests
                 bat "mvn clean test package"
             }
@@ -19,9 +16,9 @@ pipeline {
 
     post {
         always {
-            // Archive test results and artifacts
-            junit '**/target/surefire-reports/TEST-SampleTest.xml'
-            archiveArtifacts 'target/ttest.jar'
+            // Archive test results (if any) and correct artifact
+            junit '**/target/surefire-reports/*.xml' // Updated pattern
+            archiveArtifacts 'target/*.jar' // Archives all JARs
         }
 
         unstable {
