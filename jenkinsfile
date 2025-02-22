@@ -2,29 +2,31 @@ pipeline {
     agent any
 
     tools {
-        // Install the Maven version configured as "M3" and add it to the path.
         maven "M3"
     }
 
     stages {
         stage('Build') {
             steps {
-                // Get some code from a GitHub repository
+                // Clone the repository
                 git 'https://github.com/jglick/simple-maven-project-with-tests.git'
 
-                // Run Maven on a Unix agent.
-
-                 bat "mvn -Dmaven.test.failure.ignore=true clean package"
+                // Run Maven on a Windows agent
+                bat "mvn clean package"
             }
+        }
+    }
 
-            post {
-                // If Maven was able to run the tests, even if some of the test
-                // failed, record the test results and archive the jar file.
-                success {
-                    junit '**/target/surefire-reports/TEST-*.xml'
-                    archiveArtifacts 'target/*.jar'
-                }
-            }
+    post {
+        always {
+            // Record test results and archive artifacts, even if some tests fail
+            junit '**/target/surefire-reports/TEST-*.xml'
+            archiveArtifacts 'target/*.jar'
+        }
+
+        unstable {
+            // Notify about unstable builds
+            echo "Build is unstable due to failing tests."
         }
     }
 }
