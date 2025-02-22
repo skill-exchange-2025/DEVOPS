@@ -9,7 +9,7 @@ pipeline {
         stage('Build') {
             steps {
                 // Clone the repository
-                git 'https://github.com/jglick/simple-maven-project-with-tests.git'
+                git 'https://github.com/skill-exchange-2025/DEVOPS.git'
 
                 // Run Maven on a Windows agent
                 bat "mvn clean package"
