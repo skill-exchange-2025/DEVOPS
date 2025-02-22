@@ -20,8 +20,8 @@ pipeline {
     post {
         always {
             // Archive test results and artifacts
-            junit '**/target/surefire-reports/TEST-*.xml'
-            archiveArtifacts 'target/*.jar'
+            junit '**/target/surefire-reports/TEST-SampleTest.xml'
+            archiveArtifacts 'target/ttest.jar'
         }
 
         unstable {
