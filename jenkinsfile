@@ -26,14 +26,14 @@ pipeline {
 
         stage('Maven Build') {
             steps {
-                // Run Maven build with tests
+
                 bat "mvn clean package -DskipTests"
             }
         }
 
         stage('Maven Test') {
             steps {
-                // Run Maven tests
+
                 bat "mvn test"
             }
         }
@@ -41,8 +41,8 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    def mvn = tool 'M3'; // Use the Maven tool configured in Jenkins
-                    withSonarQubeEnv('scanner') { // Replace 'SonarQube' with your SonarQube server name
+                    def mvn = tool 'M3';
+                    withSonarQubeEnv('scanner') {
                     bat "\"${mvn}/bin/mvn\" clean verify sonar:sonar -Dsonar.projectKey=DEVOPS -Dsonar.projectName='DEVOPS'"
                     }
                 }
@@ -72,11 +72,11 @@ pipeline {
         stage('Deploy') {
             steps {
                   script {
-                            // Ensure the container is stopped and removed
+
                             bat "docker stop bedhiafixokba-devops || exit 0"
                             bat "docker rm -f bedhiafixokba-devops || exit 0"
 
-                            // Start the new container
+
                             bat "docker run -d --name bedhiafixokba-devops -p 8089:8089 bedhiafixokba/devops:latest"
                         }
             }
@@ -85,7 +85,7 @@ pipeline {
 
     post {
         always {
-            // Archive test results (if any) and correct artifact
+
             junit '**/target/surefire-reports/*.xml' // Updated pattern
             archiveArtifacts 'target/*.jar' // Archives all JARs
         }
