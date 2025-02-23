@@ -12,7 +12,7 @@ pipeline {
     }
 
     parameters {
-        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Branch to build')
+        string(name: 'BRANCH_NAME', defaultValue: 'OKBA', description: 'Branch to build')
         string(name: 'DOCKER_TAG', defaultValue: 'latest', description: 'Docker image tag')
     }
 
@@ -38,13 +38,13 @@ pipeline {
             }
         }
 
-        stage('SonarQube analysis') {
+        stage('SonarQube Analysis') {
             steps {
                 script {
-                def scannerHome = tool 'scanner'
-                withSonarQubeEnv('scanner') {
-                bat "${scannerHome}/bin/sonar-scanner"
-                }
+                    def mvn = tool 'M3'; // Use the Maven tool configured in Jenkins
+                    withSonarQubeEnv('SonarQube') { // Replace 'SonarQube' with your SonarQube server name
+                        bat "${mvn}/bin/mvn clean verify sonar:sonar -Dsonar.projectKey=DEVOPS -Dsonar.projectName='DEVOPS'"
+                    }
                 }
             }
         }
