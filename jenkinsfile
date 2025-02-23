@@ -72,7 +72,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    bat "docker stop ${DOCKER_IMAGE} || true && docker rm ${DOCKER_IMAGE} || true"
+                    bat "docker stop ${DOCKER_IMAGE} || exit 0 && docker rm ${DOCKER_IMAGE} || exit 0"
                     bat "docker run -d --name ${DOCKER_IMAGE} -p 8089:8089 ${DOCKER_IMAGE}:${DOCKER_TAG}"
                 }
             }
