@@ -71,10 +71,14 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                script {
-                    bat "docker stop ${DOCKER_IMAGE} || exit 0 && docker rm -f bedhiafixokba-devops || exit 0"
-                    bat "docker run -d --name bedhiafixokba-devops -p 8089:8089 bedhiafixokba/devops:${DOCKER_TAG}"
-                }
+                  script {
+                            // Ensure the container is stopped and removed
+                            bat "docker stop bedhiafixokba-devops || exit 0"
+                            bat "docker rm -f bedhiafixokba-devops || exit 0"
+
+                            // Start the new container
+                            bat "docker run -d --name bedhiafixokba-devops -p 8089:8089 bedhiafixokba/devops:latest"
+                        }
             }
         }
     }
