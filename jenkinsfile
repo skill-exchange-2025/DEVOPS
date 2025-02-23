@@ -72,7 +72,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    bat "docker stop ${DOCKER_IMAGE} || exit 0 && docker rm bedhiafixokba-devops || exit 0"
+                    bat "docker stop ${DOCKER_IMAGE} || exit 0 && docker rm -f bedhiafixokba-devops || exit 0"
                     bat "docker run -d --name bedhiafixokba-devops -p 8089:8089 bedhiafixokba/devops:${DOCKER_TAG}"
                 }
             }
