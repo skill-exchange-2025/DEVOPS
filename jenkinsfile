@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        DOCKER_IMAGE = "tp-foyer"
+        DOCKER_IMAGE = "bedhiafixokba/devops"
         DOCKER_TAG = "latest"
         BRANCH_NAME = "OKBA"
     }
