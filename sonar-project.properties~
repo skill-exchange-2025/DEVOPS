@@ -2,3 +2,4 @@ sonar.projectKey=DEVOPS
 sonar.projectName=DEVOPS
 sonar.host.url=http://localhost:9000
 sonar.java.binaries=target/classes
+sonar.token=
