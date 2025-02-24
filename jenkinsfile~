@@ -9,6 +9,10 @@ pipeline {
         DOCKER_IMAGE = "bedhiafixokba/devops"
         DOCKER_TAG = "latest"
         BRANCH_NAME = "OKBA"
+        registryCredentials = "nexus"
+        registry = "localhost:8083"
+
+
     }
 
     parameters {
@@ -69,6 +73,15 @@ pipeline {
             }
         }
 
+        stage('Deploy to Nexus') {
+            steps {
+                script {
+                    docker.withRegistry("http://${registry}", registryCredentials) {
+                        bat "docker push ${registry}/bedhiafixokba/devops:latest"
+                    }
+                }
+            }
+        }
         stage('Deploy') {
             steps {
                   script {
@@ -85,7 +98,7 @@ pipeline {
 
     post {
         always {
-            
+
             junit '**/target/surefire-reports/*.xml' // Updated pattern
             archiveArtifacts 'target/*.jar' // Archives all JARs
         }
