@@ -6,11 +6,11 @@ pipeline {
     }
 
     environment {
-        DOCKER_IMAGE = "bedhiafixokba/devops"
+        DOCKER_IMAGE = "localhost:8081/repository/docker-repo/devops"
         DOCKER_TAG = "latest"
         BRANCH_NAME = "OKBA"
         registryCredentials = "nexus"
-        registry = "localhost:8083"
+        registry = "http://localhost:8081"
 
 
     }
@@ -73,15 +73,17 @@ pipeline {
             }
         }
 
-        stage('Deploy to Nexus') {
-            steps {
-                script {
-                    docker.withRegistry("http://${registry}", registryCredentials) {
-                        bat "docker push ${registry}/bedhiafixokba/devops:latest"
-                    }
-                }
-            }
-        }
+       stage(' Nexus') {
+           steps {
+               script {
+                   // Use the corrected registry URL and image name
+                   docker.withRegistry(registry, registryCredentials) {
+                       def image = docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
+                       image.push()
+                   }
+               }
+           }
+       }
         stage('Deploy') {
             steps {
                   script {
