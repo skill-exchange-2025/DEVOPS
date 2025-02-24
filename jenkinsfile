@@ -73,11 +73,15 @@ pipeline {
             }
         }
 
-        stage(' Nexus') {
+        stage('Nexus') {
             steps {
                 script {
                     docker.withRegistry("http://localhost:8081", "nexus") {
-                        bat "docker push localhost:8083/bedhiafixokba/devops:latest"
+                        // Build the Docker image with the specified tag
+                        def image = docker.build("bedhiafixokba/devops:latest")
+
+                        // Push the Docker image to Nexus
+                        image.push()
                     }
                 }
             }
