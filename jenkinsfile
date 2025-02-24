@@ -6,11 +6,11 @@ pipeline {
     }
 
     environment {
-        DOCKER_IMAGE = "localhost:8081/repository/docker-repo/devops"
+        DOCKER_IMAGE = "localhost:8083/repository/docker-repo/devops"
         DOCKER_TAG = "latest"
         BRANCH_NAME = "OKBA"
         registryCredentials = "nexus"
-        registry = "http://localhost:8081"
+        registry = "http://localhost:8083/repository/docker-repo"
     }
 
     parameters {
