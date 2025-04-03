@@ -4,6 +4,9 @@ pipeline {
   tools {
         maven "M2_HOME"
     }
+    environment {
+        DOCKER-IMAGE=''
+    }
     stages {
         stage('Checkout') {
             steps {
@@ -32,7 +35,7 @@ pipeline {
          stage('SonarQube Analysis') {
                     steps {
                         script {
-                            def mvn = tool 'M3';
+                            def mvn = tool 'M2_HOME';
                             withSonarQubeEnv('scanner') {
                             sh "\"${mvn}/bin/mvn\" clean verify sonar:sonar -Dsonar.projectKey=DEVOPS -Dsonar.projectName='DEVOPS'"
                             }
@@ -42,6 +45,7 @@ pipeline {
 
 
     }
+    
 
     post {
         success {

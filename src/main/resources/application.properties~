@@ -1,0 +1,6 @@
+# Ensure these EXACT values:
+spring.datasource.url=jdbc:postgresql://db:5432/mydatabase
+spring.datasource.username=user
+spring.datasource.password=password
+
+# Remove ALL other DB configs
