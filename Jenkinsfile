@@ -13,8 +13,9 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/skill-exchange-2025/DEVOPS.git'
-                sh 'ls -la'  // Debug: Verify files exist
+                git branch: 'islem',  // Check out the correct branch
+             url: 'https://github.com/skill-exchange-2025/DEVOPS.git'
+        sh 'ls -la'
             }
         }
 
