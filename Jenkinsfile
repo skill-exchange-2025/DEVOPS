@@ -26,13 +26,6 @@ pipeline {
             }
         }
 
-        stage('Cache Dependencies') {
-            steps {
-                sh 'mvn dependency:go-offline'
-                stash includes: '.m2/repository/**', name: 'm2-cache'  // Cache local repo
-            }
-        }
-
         stage('Build') {
             steps {
                 unstash 'm2-cache'  // Restore cached dependencies
