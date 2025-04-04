@@ -1,0 +1,19 @@
+package tn.esprit.tpfoyer;
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
+import tn.esprit.tpfoyer.entity.Universite;
+import tn.esprit.tpfoyer.repository.UniversiteRepository;
+import tn.esprit.tpfoyer.service.UniversiteServiceImpl;
+
+import java.util.List;
+import java.util.Optional;
+@ExtendWith(MockitoExtension.class)
+
+public class UnivertiteServiceImplTest {
+    
+}
