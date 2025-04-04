@@ -3,7 +3,8 @@ pipeline {
     tools { maven "M2_HOME" }  // Ensure this matches Jenkins' Maven tool name
 
     environment {
-        DOCKER_IMAGE = 'islem/devops-master-backend:1.0.0'
+            DOCKER_IMAGE = 'sloumaaa333/devops-master-backend:1.0.0'
+
         COMPOSE_FILE = 'docker-compose.yml'
     }
 
