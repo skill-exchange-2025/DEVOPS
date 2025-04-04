@@ -6,31 +6,27 @@ pipeline {
     }
 
     environment {
-        DOCKER_IMAGE = 'islem/devops-master-backend:1.0.0'  
+        DOCKER_IMAGE = 'islem/devops-master-backend:1.0.0'
+        GIT_PATH = '/mingw64/bin/git'
     }
 
     stages {
         stage('Checkout') {
             steps {
                 git 'https://github.com/skill-exchange-2025/DEVOPS.git'
+                sh 'ls -la'  // Debug: Verify files exist
             }
         }
 
         stage('Build') {
             steps {
-                script {
-                    // Build the project with Maven
-                    sh 'mvn clean install'
-                }
+                sh 'mvn clean package -DskipTests'  // Matches Dockerfile
             }
         }
 
         stage('Test') {
             steps {
-                script {
-                    // Run unit tests
-                    sh 'mvn test'
-                }
+                sh 'mvn test'
             }
         }
 
@@ -39,28 +35,35 @@ pipeline {
                 script {
                     def mvn = tool 'M2_HOME';
                     withSonarQubeEnv('scanner') {
-                        sh "\"${mvn}/bin/mvn\" clean verify sonar:sonar -Dsonar.projectKey=DEVOPS -Dsonar.projectName='DEVOPS'"
+                        sh "\"${mvn}/bin/mvn\" sonar:sonar -Dsonar.projectKey=DEVOPS -Dsonar.projectName='DEVOPS'"
                     }
                 }
             }
         }
 
-        // Docker Build and Push Stage
         stage('Docker Build and Push') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'islem', 
-                                                      usernameVariable: 'DOCKER_USER', 
-                                                      passwordVariable: 'DOCKER_PASS')]) {
-                        // Docker login securely
+                    withCredentials([usernamePassword(
+                        credentialsId: 'islem',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
                         sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                        
-                        // Build Docker image (assuming Dockerfile is in project root)
-                        sh 'docker build -t $DOCKER_IMAGE -f Dockerfile .'
-                        
-                        // Push Docker image to Docker Hub
+                        sh 'docker build -t $DOCKER_IMAGE .'  // Build from Dockerfile
                         sh 'docker push $DOCKER_IMAGE'
                     }
+                }
+            }
+        }
+
+        stage('Docker Compose Up') {
+            steps {
+                script {
+                    sh 'docker-compose build'  // Rebuild services if needed
+                    sh 'docker-compose up -d'  // Detached mode
+                    sh 'sleep 10'  // Wait for containers to initialize
+                    sh 'docker ps'  // Verify containers are running
                 }
             }
         }
@@ -68,10 +71,10 @@ pipeline {
 
     post {
         success {
-            echo 'Le pipeline a réussi !'
+            echo 'Pipeline succeeded!'
         }
         failure {
-            echo 'Le pipeline a échoué !'
+            echo 'Pipeline failed!'
         }
     }
 }
