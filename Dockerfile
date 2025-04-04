@@ -8,6 +8,6 @@ RUN mvn clean package -DskipTests
 # Runtime stage
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
-COPY --from=builder /app/target/*.jar ./app.jar
+COPY --from=builder /app/target/tp-foyer-5.0.0.jar ./app.jar
 EXPOSE 8089
 ENTRYPOINT ["java", "-jar", "app.jar"]
