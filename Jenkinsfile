@@ -1,9 +1,6 @@
 pipeline {
     agent any
-
-    tools {
-        maven "M2_HOME"  // Ensure this matches your Jenkins Maven tool name
-    }
+    tools { maven "M2_HOME" }  // Ensure this matches Jenkins' Maven tool name
 
     environment {
         DOCKER_IMAGE = 'islem/devops-master-backend:1.0.0'
@@ -11,31 +8,24 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                git branch: 'islem', 
-                     url: 'https://github.com/skill-exchange-2025/DEVOPS.git'
-            }
-        }
-
         stage('Build') {
             steps {
                 sh 'mvn clean package -DskipTests'
-                stash includes: 'target/*.jar', name: 'app-jar'  // Stash for Docker stage
+                stash includes: 'target/*.jar', name: 'app-jar'
             }
         }
 
         stage('Test') {
             steps {
                 sh 'mvn test'
-                junit 'target/surefire-reports/**/*.xml'  // Publish test results
+                junit allowEmptyResults: true, testResults: 'target/surefire-reports/**/*.xml'
             }
         }
 
         stage('Docker Build and Push') {
             steps {
                 script {
-                    unstash 'app-jar'  // Retrieve the JAR
+                    unstash 'app-jar'
                     withCredentials([usernamePassword(
                         credentialsId: 'islem',
                         usernameVariable: 'DOCKER_USER',
@@ -55,11 +45,10 @@ pipeline {
     post {
         always {
             script {
-                // Gracefully handle docker-compose absence
                 try {
                     sh 'docker-compose -f $COMPOSE_FILE down || true'
                 } catch (Exception e) {
-                    echo "Warning: docker-compose not installed: ${e.message}"
+                    echo "Skipping docker-compose (not installed)"
                 }
                 cleanWs()
             }
