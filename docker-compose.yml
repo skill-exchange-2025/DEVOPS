@@ -46,7 +46,8 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: "grafana"
     volumes:
-      - C:\GrafanaProvisioning:/var/lib/grafana  # Mount the local directory
+      - C:\GrafanaProvisioning\datasources:/etc/grafana/provisioning/datasources
+      - C:\GrafanaProvisioning\dashboards:/etc/grafana/provisioning/dashboards
     depends_on:
       - prometheus
     networks:
