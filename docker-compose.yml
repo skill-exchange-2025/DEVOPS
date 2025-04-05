@@ -7,7 +7,7 @@ services:
     ports:
       - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: ""
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"  # Allow empty root password
       MYSQL_DATABASE: db
     volumes:
       - db_data:/var/lib/mysql
@@ -46,7 +46,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/db?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ""
+      SPRING_DATASOURCE_PASSWORD: ""  # Empty password as root password is empty
     networks:
       - devops-net
 
@@ -58,7 +58,7 @@ services:
     environment:
       - sonar.jdbc.url=jdbc:mysql://db:3306/sonar
       - sonar.jdbc.username=root
-      - sonar.jdbc.password=""
+      - sonar.jdbc.password=""  # Empty password
     volumes:
       - sonarqube_data:/opt/sonarqube/data
       - sonarqube_extensions:/opt/sonarqube/extensions
