@@ -74,28 +74,27 @@ pipeline {
                 bat 'docker-compose up -d --build'
             }
         }
-    }
 
-            stage('Prometheus Setup') {
-                steps {
-                    script {
-                        // Wait for Prometheus container to be up
-                        bat 'docker exec -it prometheus curl -s http://localhost:9090/-/reload'
-                        // You can add more steps here to configure Prometheus if needed
-                    }
-                }
-            }
-
-            stage('Grafana Setup') {
-                steps {
-                    script {
-                        // Wait for Grafana container to be up
-                        bat 'docker exec -it grafana curl -s http://localhost:3000/api/datasources'
-                        // You can add more steps here to configure Grafana if needed
-                    }
+        stage('Prometheus Setup') {
+            steps {
+                script {
+                    // Wait for Prometheus container to be up
+                    bat 'docker exec -it prometheus curl -s http://localhost:9090/-/reload'
+                    // You can add more steps here to configure Prometheus if needed
                 }
             }
         }
+
+        stage('Grafana Setup') {
+            steps {
+                script {
+                    // Wait for Grafana container to be up
+                    bat 'docker exec -it grafana curl -s http://localhost:3000/api/datasources'
+                    // You can add more steps here to configure Grafana if needed
+                }
+            }
+        }
+    }
 
     post {
         always {
