@@ -75,12 +75,6 @@ stage('Docker Compose Up') {
     }
 }
 
-stage('Clean Up') {
-    steps {
-        bat 'docker-compose down -v'
-    }
-}
-
 
 
     }
