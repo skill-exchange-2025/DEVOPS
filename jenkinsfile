@@ -23,9 +23,10 @@ pipeline {
         stage('Start Containers') {
             steps {
                 script {
-                    // Ensure Docker Compose starts the containers
+                    // Clean up any existing containers that might conflict with the new ones
+                    bat 'docker rm -f grafana || true'   // Force remove the existing grafana container, if it exists
                     bat 'docker-compose down --remove-orphans'  // Clean up any previous instances
-                    bat 'docker-compose up -d --build'          // Start containers in detached mode
+                    bat 'docker-compose up -d --build'   // Start containers in detached mode and build them
                 }
             }
         }
