@@ -67,7 +67,6 @@ pipeline {
                 }
             }
         }
-docker cp graf:/etc/grafana/provisioning/dashboards C:/GrafanaProvisioning/dashboards
 
         stage('Docker Compose Up') {
             steps {
