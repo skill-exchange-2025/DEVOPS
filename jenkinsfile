@@ -25,7 +25,8 @@ pipeline {
                 script {
                     // Clean up any existing containers that might conflict with the new ones
                     bat 'docker rm -f grafana || true'   // Force remove the existing grafana container, if it exists
-                    bat 'docker-compose down --remove-orphans'  // Clean up any previous instances
+                    bat 'docker rm -f nexus || true'     // Force remove the existing nexus container, if it exists
+                    bat 'docker-compose down --volumes --remove-orphans'  // Clean up any previous instances, but keep data volumes intact
                     bat 'docker-compose up -d --build'   // Start containers in detached mode and build them
                 }
             }
@@ -82,7 +83,8 @@ pipeline {
         stage('Docker Compose Up') {
             steps {
                 script {
-                    bat 'docker-compose down --remove-orphans'
+                    // Ensure that containers are restarted without affecting volumes
+                    bat 'docker-compose down --volumes --remove-orphans'
                     bat 'docker-compose up -d --build'
                 }
             }
