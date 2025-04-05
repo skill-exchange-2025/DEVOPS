@@ -26,6 +26,7 @@ pipeline {
                     // Clean up any existing containers that might conflict with the new ones
                     bat 'docker rm -f grafana || true'   // Force remove the existing grafana container, if it exists
                     bat 'docker rm -f nexus || true'     // Force remove the existing nexus container, if it exists
+                    bat 'docker rm -f prometheus || true'  // Force remove the existing postgres container, if it exists
                     bat 'docker-compose down --volumes --remove-orphans'  // Clean up any previous instances, but keep data volumes intact
                     bat 'docker-compose up -d --build'   // Start containers in detached mode and build them
                 }
