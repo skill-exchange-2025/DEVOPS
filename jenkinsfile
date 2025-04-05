@@ -70,10 +70,13 @@ pipeline {
         }
 stage('Docker Compose Up') {
     steps {
-        bat 'docker-compose down || echo already down'
-        bat 'docker-compose up -d --build'
+        script {
+            bat 'docker-compose down --remove-orphans'
+            bat 'docker-compose up -d --build'
+        }
     }
 }
+
 
 
 
