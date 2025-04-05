@@ -19,6 +19,7 @@ pipeline {
         string(name: 'DOCKER_TAG', defaultValue: 'latest', description: 'Docker image tag')
     }
 
+    stages {
         stage('Git Clone') {
             steps {
                 git branch: "${BRANCH_NAME}",
@@ -68,10 +69,9 @@ pipeline {
         }
 
         stage('Docker Compose Up') {
-             steps {
-                 bat 'docker-compose down || echo already down'
-                 bat 'docker-compose up -d --build'
-                }
+            steps {
+                bat 'docker-compose down || echo already down'
+                bat 'docker-compose up -d --build'
             }
         }
     }
