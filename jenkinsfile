@@ -75,25 +75,25 @@ pipeline {
             }
         }
 
-               stage('Prometheus Setup') {
-                   steps {
-                       script {
-                           // Ensure Prometheus container is ready before executing setup
-                           bat 'docker ps -q -f name=prometheus || echo Prometheus container is not up'
-                           bat 'docker exec prometheus curl -s http://localhost:9090/-/reload'
-                       }
-                   }
-               }
+        stage('Prometheus Setup') {
+            steps {
+                script {
+                    // Wait for Prometheus container to be up without allocating TTY
+                    bat 'docker exec prometheus curl -s http://localhost:9090/-/reload'
+                    // You can add more steps here to configure Prometheus if needed
+                }
+            }
+        }
 
-               stage('Grafana Setup') {
-                   steps {
-                       script {
-                           // Ensure Grafana container is ready before executing setup
-                           bat 'docker ps -q -f name=grafana || echo Grafana container is not up'
-                           bat 'docker exec grafana curl -s http://localhost:3000/api/datasources'
-                       }
-                   }
-               }
+        stage('Grafana Setup') {
+            steps {
+                script {
+                    // Wait for Grafana container to be up without allocating TTY
+                    bat 'docker exec grafana curl -s http://localhost:3000/api/datasources'
+                    // You can add more steps here to configure Grafana if needed
+                }
+            }
+        }
 
     }
 

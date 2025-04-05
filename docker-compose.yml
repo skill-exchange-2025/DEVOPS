@@ -7,7 +7,7 @@ services:
     ports:
       - "3306:3306"
     environment:
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"  # Allow empty root password
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
       MYSQL_DATABASE: db
     volumes:
       - db_data:/var/lib/mysql
@@ -24,7 +24,31 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/db?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ""  # Empty password as root password is empty
+      SPRING_DATASOURCE_PASSWORD: ""
+    networks:
+      - devops-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prom
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - devops-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: graf
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "grafana"
+    volumes:
+      - C:\GrafanaProvisioning:/var/lib/grafana  # Mount the local directory
+    depends_on:
+      - prom
     networks:
       - devops-net
 
