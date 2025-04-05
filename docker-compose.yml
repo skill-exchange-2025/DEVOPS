@@ -14,27 +14,6 @@ services:
     networks:
       - devops-net
 
-  prometheus:
-    image: prom/prometheus
-    container_name: prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    networks:
-      - devops-net
-
-  grafana:
-    image: grafana/grafana
-    container_name: grafana
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
-    networks:
-      - devops-net
-
   devops-app:
     image: bedhiafixokba/devops:latest
     container_name: devops-app
@@ -42,7 +21,6 @@ services:
       - "8089:8089"
     depends_on:
       - db
-      - sonarqube
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/db?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
@@ -50,40 +28,8 @@ services:
     networks:
       - devops-net
 
-  sonarqube:
-    image: sonarqube:latest
-    container_name: sonarqube
-    ports:
-      - "9000:9000"
-    environment:
-      - sonar.jdbc.url=jdbc:mysql://db:3306/sonar
-      - sonar.jdbc.username=root
-      - sonar.jdbc.password=""  # Empty password
-    volumes:
-      - sonarqube_data:/opt/sonarqube/data
-      - sonarqube_extensions:/opt/sonarqube/extensions
-    networks:
-      - devops-net
-
-  nexus:
-    image: sonatype/nexus3:latest
-    container_name: nexus
-    ports:
-      - "8081:8081"
-    environment:
-      - NEXUS_SECURITY_RANDOMPASSWORD=false
-    volumes:
-      - nexus_data:/nexus-data
-    networks:
-      - devops-net
-    restart: always
-
 volumes:
   db_data:
-  grafana_data:
-  sonarqube_data:
-  sonarqube_extensions:
-  nexus_data:
 
 networks:
   devops-net:
