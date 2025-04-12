@@ -10,8 +10,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git credentialsId: 'b3b7ed13-f691-4ade-ba88-bdf7e68d6dc6', url: 'https://github.com/skill-exchange-2025/DEVOPS.git'
-                // Adjust the credentialsId and Git URL accordingly
+                checkout scm
             }
         }
 
@@ -49,7 +48,7 @@ pipeline {
                 ]) {
                     withCredentials([
                         usernamePassword(
-                            credentialsId: 'b3b7ed13-f691-4ade-ba88-bdf7e68d6dc6',
+                            credentialsId: 'deploymentRepo',
                             usernameVariable: 'NEXUS_USER',
                             passwordVariable: 'NEXUS_PASS'
                         )
