@@ -123,21 +123,20 @@ pipeline {
                 }
             }
         }
-    
 
-    post {
-            always {
-                node('any') { // Wrap `post` block with `node` to access workspace and `cleanWs()`
-                    script {
-                        try {
-                            // Ensure docker-compose is installed
-                            sh 'docker-compose -f ${COMPOSE_FILE} down || true'
-                        } catch (Exception e) {
-                            echo "Skipping docker-compose (not installed)"
-                        }
-                        cleanWs() // Clean the workspace here
-                    }
-                }
-            }
-        }
+
+   post {
+       always {
+           script {
+               // 1. First stop containers (while files still exist)
+               sh 'docker-compose -f docker-compose.yml down || true'
+
+               // 2. Then clean workspace
+               cleanWs()
+
+               // Optional: Verify cleanup
+               sh 'docker ps -a | wc -l | grep -v "^0$" || echo "All containers removed"'
+           }
+       }
+   }
 }
