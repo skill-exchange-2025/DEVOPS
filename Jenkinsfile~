@@ -127,18 +127,16 @@ pipeline {
     }
 
     post {
-            always {
-                node { // Wrap `post` block with `node` to access workspace and `cleanWs()`
-                    script {
-                        try {
-                            // Ensure docker-compose is installed
-                            sh 'docker-compose -f ${COMPOSE_FILE} down || true'
-                        } catch (Exception e) {
-                            echo "Skipping docker-compose (not installed)"
-                        }
-                        cleanWs() // Clean the workspace here
-                    }
+        always {
+            script {
+                try {
+                    // Ensure docker-compose is installed
+                    sh 'docker-compose -f ${COMPOSE_FILE} down || true'
+                } catch (Exception e) {
+                    echo "Skipping docker-compose (not installed)"
                 }
+                cleanWs() // Clean the workspace here (no need for `node` block)
             }
         }
+    }
 }
