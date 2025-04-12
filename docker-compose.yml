@@ -4,47 +4,51 @@ services:
   backend:
     build:
       context: .
+      args:
+        - GIT_TOKEN=${GIT_TOKEN}
     ports:
       - "8089:8089"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/mydatabase?currentSchema=public
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/mydatabase
       - SPRING_DATASOURCE_USERNAME=user
       - SPRING_DATASOURCE_PASSWORD=password
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA=public
-      - GIT_TOKEN=${GIT_TOKEN}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate # Changed from update for production
+      - SPRING_LIQUIBASE_ENABLED=true
     depends_on:
       db:
         condition: service_healthy
     networks:
       - app-network
-    restart: on-failure  # Ensures the backend restarts on failure
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8089/actuator/health"]
       interval: 30s
-      retries: 3
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
 
   db:
-    image: postgres:14
+    image: postgres:14-alpine # Smaller image
     container_name: postgres-db
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: mydatabase
-      POSTGRES_INITDB_ARGS: --encoding=UTF-8 --lc-collate=C --lc-ctype=C  # Better performance
+      POSTGRES_INITDB_ARGS: --encoding=UTF-8
     ports:
       - "5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql  # Ensure init.sql exists for schema initialization
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d mydatabase"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20 # Increased retries
+      start_period: 30s # Added startup delay
     networks:
       - app-network
-    restart: unless-stopped  # Ensures DB restarts unless stopped manually
+    restart: unless-stopped
 
 networks:
   app-network:

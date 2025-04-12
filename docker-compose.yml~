@@ -12,6 +12,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=password
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA=public
+      - GIT_TOKEN=${GIT_TOKEN}
     depends_on:
       db:
         condition: service_healthy
