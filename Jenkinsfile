@@ -14,49 +14,55 @@ pipeline {
                 checkout scm
             }
         }
-        stage('Load Git Token') {
-                    steps {
-                        script {
-                            echo "Git Token loaded from Jenkins credentials."
-                        }
-                    }
-                }
 
+        stage('Load Git Token') {
+            steps {
+                script {
+                    echo "Git Token loaded from Jenkins credentials."
+                }
+            }
+        }
 
         stage('Build') {
             steps {
-                sh 'mvn clean package -DskipTests'
-                stash includes: 'target/*.jar', name: 'app-jar'
- // Set up Git to use the token for authentication
-        sh """
-            git config --global url."https://$GIT_TOKEN@github.com".insteadOf "https://github.com"
-        """
+                // Set up Git to use the token for authentication
+                sh """
+                    git config --global url."https://$GIT_TOKEN@github.com".insteadOf "https://github.com"
+                """
 
+                // Build using Maven
+                sh 'mvn clean package -DskipTests'
+
+                // Stash the app JAR for later use
+                stash includes: 'target/*.jar', name: 'app-jar'
             }
         }
+
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    // Execute the SonarQube analysis using Maven
-                    withSonarQubeEnv('scanner') {  // Ensure this matches the name of the SonarQube server in Jenkins config
+                    // Execute SonarQube analysis using Maven
+                    withSonarQubeEnv('scanner') {
                         sh 'mvn sonar:sonar -Dsonar.projectKey=your_project_key -Dsonar.host.url=http://192.168.56.10:9000/'
                     }
                 }
             }
         }
+
         stage('Test') {
             steps {
                 sh 'mvn test'
                 junit allowEmptyResults: true, testResults: 'target/surefire-reports/**/*.xml'
             }
         }
+
         stage('Deploy to Nexus') {
             steps {
                 configFileProvider([
                     configFile(
-                        fileId: 'deploymentRepo',  // Match your Jenkins config file ID
+                        fileId: 'deploymentRepo',
                         variable: 'MAVEN_SETTINGS',
-                        replaceTokens: true  // Critical for credential injection
+                        replaceTokens: true
                     )
                 ]) {
                     withCredentials([
@@ -79,11 +85,13 @@ pipeline {
                 }
             }
         }
+
         stage('Docker Version Check') {
             steps {
                 sh 'docker --version'
             }
         }
+
         stage('Docker Build and Push') {
             environment {
                 DOCKER_IMAGE = "sloumaaa333/devops-master-backend:1.0.0"
@@ -111,7 +119,7 @@ pipeline {
                 script {
                     // Adjust the directory to where your docker-compose.yml file is
                     dir('C:/Users/islem/Desktop/devops/DEVOPS-master') {
-                        sh 'docker-compose -f $COMPOSE_FILE up -d'  // -d for detached mode (background)
+                        sh 'docker-compose -f ${COMPOSE_FILE} up -d'  // -d for detached mode (background)
                     }
                 }
             }
@@ -123,11 +131,11 @@ pipeline {
             script {
                 try {
                     // Ensure docker-compose is installed
-                    sh 'docker-compose -f $COMPOSE_FILE down || true'
+                    sh 'docker-compose -f ${COMPOSE_FILE} down || true'
                 } catch (Exception e) {
                     echo "Skipping docker-compose (not installed)"
                 }
-                cleanWs()
+                cleanWs() // Clean the workspace here (no need for `node` block)
             }
         }
     }
