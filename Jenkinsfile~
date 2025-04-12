@@ -27,10 +27,7 @@ pipeline {
             steps {
                 sh 'mvn clean package -DskipTests'
                 stash includes: 'target/*.jar', name: 'app-jar'
- // Set up Git to use the token for authentication
-        sh """
-            git config --global url."https://$GIT_TOKEN@github.com".insteadOf "https://github.com"
-        """
+                echo "Git Token: ${env.GIT_TOKEN}"
 
             }
         }
