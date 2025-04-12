@@ -99,18 +99,6 @@ stage('Docker Version Check') {
             }
         }
     }
-      // ===== Docker Compose Up =====
-            stage('Docker Compose Up') {
-                steps {
-                    script {
-                        // Navigate to the directory where docker-compose.yml is located and bring up the containers
-                        dir('path/to/your/project') { // Adjust to your project directory if needed
-                            sh 'docker-compose -f $COMPOSE_FILE up -d'  // -d for detached mode (background)
-                        }
-                    }
-                }
-            }
-        }
 
     post {
         always {
