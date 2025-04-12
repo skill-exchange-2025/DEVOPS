@@ -21,7 +21,6 @@ pipeline {
             }
         }
 
-
         stage('Build') {
             steps {
                 sh 'mvn clean package -DskipTests'
@@ -100,17 +99,17 @@ pipeline {
             }
         }
 
-     stage('Docker Compose Up') {
-         steps {
-             script {
-                 // Adjust the directory to where your docker-compose.yml file is
-                 dir('C:/Users/islem/Desktop/devops/DEVOPS-master') {
-                     sh 'docker-compose -f $COMPOSE_FILE up -d'  // -d for detached mode (background)
-                 }
-             }
-         }
-     }
-
+        stage('Docker Compose Up') {
+            steps {
+                script {
+                    // Adjust the directory to where your docker-compose.yml file is
+                    dir('C:/Users/islem/Desktop/devops/DEVOPS-master') {
+                        sh 'docker-compose -f $COMPOSE_FILE up -d'  // -d for detached mode (background)
+                    }
+                }
+            }
+        }
+    }
 
     post {
         always {
