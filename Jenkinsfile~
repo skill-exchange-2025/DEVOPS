@@ -10,7 +10,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git credentialsId: 'gittoken', url: 'https://github.com/skill-exchange-2025/DEVOPS.git'
+                git credentialsId: '4e741fe5-ff6c-4d96-bb1e-90ce1ad4b22d', url: 'https://github.com/skill-exchange-2025/DEVOPS.git'
                 // Adjust the credentialsId and Git URL accordingly
             }
         }
