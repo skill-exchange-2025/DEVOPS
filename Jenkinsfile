@@ -38,7 +38,7 @@ stage('Deploy to Nexus') {
   steps {
     configFileProvider([
       configFile(
-        fileId: 'settingsxml',  // Match your Jenkins config file ID
+        fileId: 'deploymentRepo',  // Match your Jenkins config file ID
         variable: 'MAVEN_SETTINGS',
         replaceTokens: true  // Critical for credential injection
       )
