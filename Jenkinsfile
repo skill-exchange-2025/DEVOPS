@@ -128,7 +128,7 @@ pipeline {
 
     post {
             always {
-                node { // Wrap `post` block with `node` to access workspace and `cleanWs()`
+                node('any') { // Wrap `post` block with `node` to access workspace and `cleanWs()`
                     script {
                         try {
                             // Ensure docker-compose is installed
