@@ -14,17 +14,6 @@ pipeline {
                 checkout scm
             }
         }
-        stage('Load Git Token') {
-                    steps {
-                        script {
-                            // Load the Git token from the .env file
-                            def gitToken = sh(script: 'source .env && echo $GIT_TOKEN', returnStdout: true).trim()
-                            // Set the environment variable for the Git token
-                            env.GIT_TOKEN = gitToken
-                            echo "Git Token loaded: ${env.GIT_TOKEN}"
-                        }
-                    }
-                }
 
 
         stage('Build') {
