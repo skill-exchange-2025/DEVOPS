@@ -18,7 +18,7 @@ pipeline {
                     steps {
                         script {
                             // Load the Git token from the .env file
-                            def gitToken = sh(script: 'source .env && echo $GIT_TOKEN', returnStdout: true).trim()
+def gitToken = sh(script: '. .env && echo $GIT_TOKEN', returnStdout: true).trim()
                             // Set the environment variable for the Git token
                             env.GIT_TOKEN = gitToken
                             echo "Git Token loaded: ${env.GIT_TOKEN}"
