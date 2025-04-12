@@ -3,18 +3,17 @@ pipeline {
     tools { maven "M2_HOME" }  // Ensure this matches Jenkins' Maven tool name
 
     environment {
-            DOCKER_IMAGE = 'sloumaaa333/devops-master-backend:1.0.0'
-
+        DOCKER_IMAGE = 'sloumaaa333/devops-master-backend:1.0.0'
         COMPOSE_FILE = 'docker-compose.yml'
     }
 
     stages {
-    stage('Checkout') {
-                steps {
-                    git credentialsId: '4e741fe5-ff6c-4d96-bb1e-90ce1ad4b22d', url: 'https://github.com/yourrepo/yourproject.git'
-                    // Adjust the credentialsId and Git URL accordingly
-                }
+        stage('Checkout') {
+            steps {
+                git credentialsId: '4e741fe5-ff6c-4d96-bb1e-90ce1ad4b22d', url: 'https://github.com/yourrepo/yourproject.git'
+                // Adjust the credentialsId and Git URL accordingly
             }
+        }
         stage('Build') {
             steps {
                 sh 'mvn clean package -DskipTests'
@@ -22,63 +21,57 @@ pipeline {
             }
         }
         stage('SonarQube Analysis') {
-                    steps {
-                        script {
-                            // Execute the SonarQube analysis using Maven
-                            withSonarQubeEnv('scanner') {  // Ensure this matches the name of the SonarQube server in Jenkins config
-                                sh 'mvn sonar:sonar -Dsonar.projectKey=your_project_key -Dsonar.host.url=http://192.168.56.10:9000/'
-                            }
-                        }
+            steps {
+                script {
+                    // Execute the SonarQube analysis using Maven
+                    withSonarQubeEnv('scanner') {  // Ensure this matches the name of the SonarQube server in Jenkins config
+                        sh 'mvn sonar:sonar -Dsonar.projectKey=your_project_key -Dsonar.host.url=http://192.168.56.10:9000/'
                     }
                 }
-
+            }
+        }
         stage('Test') {
             steps {
                 sh 'mvn test'
                 junit allowEmptyResults: true, testResults: 'target/surefire-reports/**/*.xml'
             }
         }
-	
-	   // ===== DEPLOY TO NEXUS (UPDATED) =====
-stage('Deploy to Nexus') {
-  steps {
-    configFileProvider([
-      configFile(
-        fileId: 'deploymentRepo',  // Match your Jenkins config file ID
-        variable: 'MAVEN_SETTINGS',
-        replaceTokens: true  // Critical for credential injection
-      )
-    ]) {
-      withCredentials([
-        usernamePassword(
-          credentialsId: 'b3b7ed13-f691-4ade-ba88-bdf7e68d6dc6',
-          usernameVariable: 'NEXUS_USER',
-          passwordVariable: 'NEXUS_PASS'
-        )
-      ]) {
-        sh '''
-          echo "==== DEBUG INFORMATION ===="
-          echo "Nexus User: $NEXUS_USER"
-          ls -l $MAVEN_SETTINGS  # Check if file exists
-          cat $MAVEN_SETTINGS    # Verify content
-          echo "========================"
+        stage('Deploy to Nexus') {
+            steps {
+                configFileProvider([
+                    configFile(
+                        fileId: 'deploymentRepo',  // Match your Jenkins config file ID
+                        variable: 'MAVEN_SETTINGS',
+                        replaceTokens: true  // Critical for credential injection
+                    )
+                ]) {
+                    withCredentials([
+                        usernamePassword(
+                            credentialsId: 'b3b7ed13-f691-4ade-ba88-bdf7e68d6dc6',
+                            usernameVariable: 'NEXUS_USER',
+                            passwordVariable: 'NEXUS_PASS'
+                        )
+                    ]) {
+                        sh '''
+                            echo "==== DEBUG INFORMATION ===="
+                            echo "Nexus User: $NEXUS_USER"
+                            ls -l $MAVEN_SETTINGS  # Check if file exists
+                            cat $MAVEN_SETTINGS    # Verify content
+                            echo "========================"
 
-          mvn -s $MAVEN_SETTINGS -X deploy -DskipTests
-        '''
-      }
-    }
-  }
-}
-stage('Docker Version Check') {
-    steps {
-        sh 'docker --version'
-    }
-}
-
-
-
+                            mvn -s $MAVEN_SETTINGS -X deploy -DskipTests
+                        '''
+                    }
+                }
+            }
+        }
+        stage('Docker Version Check') {
+            steps {
+                sh 'docker --version'
+            }
+        }
         stage('Docker Build and Push') {
-        environment {
+            environment {
                 DOCKER_IMAGE = "sloumaaa333/devops-master-backend:1.0.0"
             }
             steps {
@@ -98,24 +91,24 @@ stage('Docker Version Check') {
                 }
             }
         }
-    }
-      // ===== Docker Compose Up =====
-            stage('Docker Compose Up') {
-                steps {
-                    script {
-                        // Navigate to the directory where docker-compose.yml is located and bring up the containers
-                        dir('path/to/your/project') { // Adjust to your project directory if needed
-                            sh 'docker-compose -f $COMPOSE_FILE up -d'  // -d for detached mode (background)
-                        }
+
+        stage('Docker Compose Up') {
+            steps {
+                script {
+                    // Adjust the directory to where your docker-compose.yml file is
+                    dir('path/to/your/project') {
+                        sh 'docker-compose -f $COMPOSE_FILE up -d'  // -d for detached mode (background)
                     }
                 }
             }
         }
+    }
 
     post {
         always {
             script {
                 try {
+                    // Ensure docker-compose is installed
                     sh 'docker-compose -f $COMPOSE_FILE down || true'
                 } catch (Exception e) {
                     echo "Skipping docker-compose (not installed)"
