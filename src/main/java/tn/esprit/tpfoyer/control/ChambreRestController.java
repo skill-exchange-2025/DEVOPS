@@ -1,11 +1,13 @@
 package tn.esprit.tpfoyer.control;
 
 import lombok.AllArgsConstructor;
+import org.apache.logging.log4j.LogManager;
 import org.springframework.web.bind.annotation.*;
 import tn.esprit.tpfoyer.entity.Chambre;
 import tn.esprit.tpfoyer.entity.TypeChambre;
 import tn.esprit.tpfoyer.service.IChambreService;
 import java.util.List;
+import java.util.logging.Logger;
 
 
 @RestController
@@ -13,7 +15,10 @@ import java.util.List;
 @RequestMapping("/chambre")
 public class ChambreRestController {
 
+
     IChambreService chambreService;
+
+
 
 // http://localhost:8089/tpfoyer/chambre/retrieve-all-chambres
      @GetMapping("/retrieve-all-chambres")
@@ -56,21 +61,6 @@ public class ChambreRestController {
     {
         return chambreService.recupererChambresSelonTyp(tc);
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     // http://localhost:8089/tpfoyer/chambre/retrieve-chambre/8
