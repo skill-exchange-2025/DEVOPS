@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Cloner le dépôt') {
             steps {
-                git branch: 'achraf', url: 'https://github.com/skill-exchange-2025/DEVOPS.git'
+                git branch: 'jihed', url: 'https://github.com/skill-exchange-2025/DEVOPS.git'
             }
         }
 
