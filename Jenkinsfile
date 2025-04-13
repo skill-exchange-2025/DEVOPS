@@ -61,8 +61,8 @@ pipeline {
 
         stage('Docker Compose Up') {
             steps {
-                sh 'docker-compose down || true' // stop previous setup if exists
-                sh 'docker-compose up -d'
+                sh 'docker compose down || true'
+                sh 'docker compose up -d'
             }
         }
     }
