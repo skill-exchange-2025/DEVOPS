@@ -1,8 +1,0 @@
-global:
-  scrape_interval: 15s  # How often to scrape metrics from the target
-
-scrape_configs:
-  - job_name: 'spring-boot-backend'  # Name for your job (can be anything)
-    metrics_path: '/actuator/prometheus'  # Default metrics endpoint for Spring Boot Actuator
-    static_configs:
-      - targets: ['192.168.56.10:8089']  # Use your IP address here
