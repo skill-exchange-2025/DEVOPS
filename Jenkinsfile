@@ -74,7 +74,7 @@ pipeline {
                 }
             }
         }
-
+/*
         stage('Build Docker Image') {
             steps {
                 sh 'docker build -t ${DOCKER_USERNAME}/YourName_G1_devops:${BUILD_NUMBER} .'
@@ -114,5 +114,5 @@ pipeline {
         failure {
             echo 'Pipeline failed!'
         }
-    }
+    }*/
 }
