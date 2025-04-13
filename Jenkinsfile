@@ -10,7 +10,7 @@ pipeline {
         JAVA_HOME = '/usr/lib/jvm/java-21-openjdk-amd64'
         PATH = "${JAVA_HOME}/bin:${env.PATH}"
         SONAR_HOST_URL = 'http://192.168.50.4:9000'
-        DOCKER_IMAGE = 'jiheddevops/tpfoyer:latest'
+        DOCKER_IMAGE = 'jihedxx/tpfoyer:latest'
     }
 
     stages {
