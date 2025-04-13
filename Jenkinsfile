@@ -3,7 +3,7 @@ pipeline {
 
     tools {
         maven 'Maven 3.9.6'
-        jdk 'jdk-21'
+        jdk 'JAVA_HOME'  // Changed from jdk-21 to JAVA_HOME to match your Jenkins config
     }
 
     environment {
