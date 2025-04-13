@@ -6,6 +6,11 @@ pipeline {
         jdk 'jdk-21'
     }
 
+    environment {
+        JAVA_HOME = tool name: 'jdk-21', type: 'hudson.model.JDK'
+        PATH = "${JAVA_HOME}/bin:${env.PATH}"
+    }
+
     stages {
         stage('Cloner le dépôt') {
             steps {
