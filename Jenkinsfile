@@ -2,15 +2,17 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_USERNAME = credentials('aymenghazouani')
-        DOCKER_PASSWORD = credentials('1920Aymen')
         NEXUS_VERSION = "nexus3"
         NEXUS_PROTOCOL = "http"
         NEXUS_URL = "localhost:8081"
         NEXUS_REPOSITORY = "maven-releases"
-        NEXUS_CREDENTIAL_ID = "nexus-credentials"
         ARTIFACT_VERSION = "5.0.0"
+
+        // Credentials binding
+        DOCKER_CREDENTIALS = credentials('dockerhub-credentials')
+        NEXUS_CREDENTIAL_ID = 'nexus-admin'
     }
+
 
     stages {
         stage('Checkout') {
@@ -62,7 +64,7 @@ pipeline {
                             repository: NEXUS_REPOSITORY,
                             credentialsId: NEXUS_CREDENTIAL_ID,
                             artifacts: [
-                                [artifactId: '4TWIN7-G1-devops',
+                                [artifactId: '4TWIN7-devops',
                                  classifier: '',
                                  file: artifactPath,
                                  type: 'jar']
