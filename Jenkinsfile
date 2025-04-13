@@ -1,15 +1,21 @@
 pipeline {
     agent any
 
-    tools {
-        maven 'Maven 3.9.6'
-        jdk 'jdk-21'
+    environment {
+        DOCKER_USERNAME = credentials('aymenghazouani')
+        DOCKER_PASSWORD = credentials('1920Aymen')
+        NEXUS_VERSION = "nexus3"
+        NEXUS_PROTOCOL = "http"
+        NEXUS_URL = "localhost:8081"
+        NEXUS_REPOSITORY = "maven-releases"
+        NEXUS_CREDENTIAL_ID = "nexus-credentials"
+        ARTIFACT_VERSION = "5.0.0"
     }
 
     stages {
-        stage('Cloner le dépôt') {
+        stage('Checkout') {
             steps {
-                git branch: 'Aymen', url: 'https://github.com/skill-exchange-2025/DEVOPS.git'
+                checkout scm
             }
         }
 
@@ -19,30 +25,92 @@ pipeline {
             }
         }
 
-        stage('Tests Unitaires') {
+        stage('Unit Tests') {
             steps {
                 sh 'mvn test'
             }
+            post {
+                always {
+                    junit '**/target/surefire-reports/*.xml'
+                }
+            }
         }
 
-        stage('Analyse SonarQube') {
+        stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('sonar-scanner') {
+                withSonarQubeEnv('SonarQube') {
                     sh 'mvn sonar:sonar'
                 }
             }
         }
 
-        stage('Docker Build') {
+        stage('Publish to Nexus') {
             steps {
-                sh 'docker build -t springboot-app .'
+                script {
+                    def pom = readMavenPom file: 'pom.xml'
+                    def filesByGlob = findFiles(glob: "target/*.jar")
+                    def artifactPath = filesByGlob[0].path
+                    def artifactExists = fileExists artifactPath
+
+                    if(artifactExists) {
+                        nexusArtifactUploader(
+                            nexusVersion: NEXUS_VERSION,
+                            protocol: NEXUS_PROTOCOL,
+                            nexusUrl: NEXUS_URL,
+                            groupId: pom.groupId,
+                            version: ARTIFACT_VERSION,
+                            repository: NEXUS_REPOSITORY,
+                            credentialsId: NEXUS_CREDENTIAL_ID,
+                            artifacts: [
+                                [artifactId: '4TWIN7-G1-devops',
+                                 classifier: '',
+                                 file: artifactPath,
+                                 type: 'jar']
+                            ]
+                        )
+                    }
+                }
             }
         }
 
-        stage('Docker Compose Up') {
+        stage('Build Docker Image') {
             steps {
+                sh 'docker build -t ${DOCKER_USERNAME}/YourName_G1_devops:${BUILD_NUMBER} .'
+                sh 'docker tag ${DOCKER_USERNAME}/YourName_G1_devops:${BUILD_NUMBER} ${DOCKER_USERNAME}/YourName_G1_devops:latest'
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+                sh 'docker push ${DOCKER_USERNAME}/YourName_G1_devops:${BUILD_NUMBER}'
+                sh 'docker push ${DOCKER_USERNAME}/YourName_G1_devops:latest'
+            }
+        }
+
+        stage('Deploy with Docker Compose') {
+            steps {
+                sh 'docker-compose down || true'
                 sh 'docker-compose up -d'
             }
+        }
+
+        stage('Test API') {
+            steps {
+                script {
+                    sleep(time: 30, unit: "SECONDS")
+                    sh 'curl -X GET http://localhost:8089/tpfoyer/etudiant/retrieve-all-etudiants'
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
         }
     }
 }
