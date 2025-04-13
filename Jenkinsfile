@@ -1,6 +1,6 @@
 pipeline {
     agent any
-    tools { maven "M2_HOME" }  // Ensure this matches Jenkins' Maven tool name
+    tools { maven "M2_HOME" }
 
     environment {
         DOCKER_IMAGE = 'sloumaaa333/devops-master-backend:1.0.0'
@@ -25,15 +25,10 @@ pipeline {
 
         stage('Build') {
             steps {
-                // Set up Git to use the token for authentication
                 sh """
                     git config --global url."https://$GIT_TOKEN@github.com".insteadOf "https://github.com"
                 """
-
-                // Build using Maven
                 sh 'mvn clean package -DskipTests'
-
-                // Stash the app JAR for later use
                 stash includes: 'target/*.jar', name: 'app-jar'
             }
         }
@@ -41,7 +36,6 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    // Execute SonarQube analysis using Maven
                     withSonarQubeEnv('scanner') {
                         sh 'mvn sonar:sonar -Dsonar.projectKey=your_project_key -Dsonar.host.url=http://192.168.56.10:9000/'
                     }
@@ -75,10 +69,9 @@ pipeline {
                         sh '''
                             echo "==== DEBUG INFORMATION ===="
                             echo "Nexus User: $NEXUS_USER"
-                            ls -l $MAVEN_SETTINGS  # Check if file exists
-                            cat $MAVEN_SETTINGS    # Verify content
+                            ls -l $MAVEN_SETTINGS
+                            cat $MAVEN_SETTINGS
                             echo "========================"
-
                             mvn -s $MAVEN_SETTINGS -X deploy -DskipTests
                         '''
                     }
@@ -118,25 +111,19 @@ pipeline {
             steps {
                 script {
                     sh 'docker-compose down || true'
-                            sh 'docker-compose up -d'
-
+                    sh 'docker-compose up -d'
                 }
             }
         }
+    }
 
-
-   post {
-       always {
-           script {
-               // 1. First stop containers (while files still exist)
-               sh 'docker-compose -f docker-compose.yml down || true'
-
-               // 2. Then clean workspace
-               cleanWs()
-
-               // Optional: Verify cleanup
-               sh 'docker ps -a | wc -l | grep -v "^0$" || echo "All containers removed"'
-           }
-       }
-   }
+    post {
+        always {
+            script {
+                sh 'docker-compose -f docker-compose.yml down || true'
+                cleanWs()
+                sh 'docker ps -a | wc -l | grep -v "^0$" || echo "All containers removed"'
+            }
+        }
+    }
 }

@@ -10,11 +10,11 @@ services:
       - "8089:8089"
     environment:
       - SPRING_PROFILES_ACTIVE=dev
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/mydatabase
-      - SPRING_DATASOURCE_USERNAME=user
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/mydatabase
+      - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=password
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate # Changed from update for production
-      - SPRING_LIQUIBASE_ENABLED=true
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update # Changed from update for production
+      - SPRING_LIQUIBASE_ENABLED=false
     depends_on:
       db:
         condition: service_healthy
@@ -28,31 +28,51 @@ services:
     restart: unless-stopped
 
   db:
-    image: postgres:14-alpine # Smaller image
-    container_name: postgres-db
+    image: mysql:8.0.28 # Use MySQL image
+    container_name: db
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: mydatabase
-      POSTGRES_INITDB_ARGS: --encoding=UTF-8
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: mydatabase
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - db-data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - db-data:/var/lib/mysql
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U user -d mydatabase || exit 0" ]  # Always return success
+      test: [ "CMD", "mysqladmin", "ping", "--user=user", "--password=password" ]
       interval: 5s
       timeout: 5s
-      retries: 30  # Increased from 20
-      start_period: 45s  # Increased from 30s
+      retries: 20
+      start_period: 30s
     networks:
       - app-network
-      -
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
+  prometheus:
+      image: prom/prometheus:latest
+      container_name: prometheus
+      ports:
+        - "9090:9090"
+      volumes:
+        - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      networks:
+        - app-network
+      restart: unless-stopped
+
+  grafana:
+        image: grafana/grafana:latest
+        container_name: grafana
+        ports:
+          - "3000:3000"
+        environment:
+          - GF_SECURITY_ADMIN_USER=admin
+          - GF_SECURITY_ADMIN_PASSWORD=islemtouati123@  # Set a default password
+        depends_on:
+          - prometheus
+        networks:
+          - app-network
+        restart: unless-stopped
 
 networks:
   app-network:
