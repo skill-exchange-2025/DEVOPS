@@ -9,9 +9,12 @@ pipeline {
     environment {
         JAVA_HOME = '/usr/lib/jvm/java-17-openjdk-amd64'
         PATH = "${JAVA_HOME}/bin:${env.PATH}"
-        DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials') // Create this in Jenkins
+        DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
         IMAGE_NAME = "farouksouei/tpfoyer"
         IMAGE_TAG = "${env.BUILD_NUMBER}"
+        // Define cache directories
+        MAVEN_CACHE = "${WORKSPACE}/.m2"
+        DOCKER_CACHE = "${WORKSPACE}/.docker-cache"
     }
 
     stages {
@@ -31,16 +34,71 @@ pipeline {
             }
         }
 
+        stage('Cache Maven Dependencies') {
+            steps {
+                // Create the Maven cache directory if it doesn't exist
+                sh 'mkdir -p ${MAVEN_CACHE}'
+
+                // Create a Maven settings file for local repository caching
+                writeFile file: "${WORKSPACE}/.mvn-settings.xml", text: """
+                <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+                  <localRepository>${MAVEN_CACHE}</localRepository>
+                </settings>
+                """
+            }
+        }
+
         stage('Build') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                // Use Maven with the local repository cache
+                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml clean package -DskipTests'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                // Run tests with caching
+                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml test'
+            }
+            post {
+                always {
+                    junit '**/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('Setup Docker Cache') {
+            steps {
+                // Create the Docker cache directory if it doesn't exist
+                sh 'mkdir -p ${DOCKER_CACHE}'
+
+                // Restore Docker cache if it exists
+                sh '''
+                if [ -d ${DOCKER_CACHE} ] && [ "$(ls -A ${DOCKER_CACHE})" ]; then
+                    echo "Restoring Docker cache..."
+                    for image in ${DOCKER_CACHE}/*.tar; do
+                        [ -f "$image" ] && docker load -i "$image" || true
+                    done
+                fi
+                '''
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
-                sh "docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest"
+                // Use Docker BuildKit for improved caching
+                sh '''
+                export DOCKER_BUILDKIT=1
+                docker build --cache-from ${IMAGE_NAME}:latest -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
+                '''
+
+                // Save the image to cache for future builds
+                sh '''
+                mkdir -p ${DOCKER_CACHE}
+                docker save ${IMAGE_NAME}:latest -o ${DOCKER_CACHE}/${IMAGE_NAME}-latest.tar
+                '''
             }
         }
 
@@ -72,7 +130,14 @@ pipeline {
     post {
         always {
             echo 'Pipeline execution completed'
-            sh 'docker logout'
+            sh 'docker logout || true'
+
+            // Archive the Maven cache for future builds
+            sh '''
+            echo "Archiving Maven cache..."
+            tar -czf maven-cache.tar.gz -C ${WORKSPACE} .m2 || true
+            '''
+            archiveArtifacts artifacts: 'maven-cache.tar.gz', allowEmptyArchive: true
         }
         success {
             echo 'Successfully built and deployed the application'
@@ -83,8 +148,11 @@ pipeline {
         cleanup {
             // Clean up Docker images to avoid disk space issues
             sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG} || true"
+
+            // Keep latest tag in cache but remove it from Docker daemon
             sh "docker rmi ${IMAGE_NAME}:latest || true"
-            // Clean up unused Docker resources
+
+            // Clean up unused Docker resources while preserving cache
             sh 'docker system prune -f || true'
         }
     }
