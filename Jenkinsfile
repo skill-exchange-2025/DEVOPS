@@ -77,9 +77,7 @@ pipeline {
                 sh '''
                 if [ -d ${DOCKER_CACHE} ] && [ "$(ls -A ${DOCKER_CACHE})" ]; then
                     echo "Restoring Docker cache..."
-                    for image in ${DOCKER_CACHE}/*.tar; do
-                        [ -f "$image" ] && docker load -i "$image" || true
-                    done
+                    find ${DOCKER_CACHE} -name "*.tar" -exec docker load -i {} \\;
                 fi
                 '''
             }
@@ -94,10 +92,12 @@ pipeline {
                 docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
                 '''
 
-                // Save the image to cache for future builds
+                // Save the image to cache for future builds - using safe filename
                 sh '''
                 mkdir -p ${DOCKER_CACHE}
-                docker save ${IMAGE_NAME}:latest -o ${DOCKER_CACHE}/${IMAGE_NAME}-latest.tar
+                # Replace / with _ for safe filename
+                SAFE_IMAGE_NAME=$(echo ${IMAGE_NAME} | tr '/' '_')
+                docker save ${IMAGE_NAME}:latest -o ${DOCKER_CACHE}/${SAFE_IMAGE_NAME}-latest.tar
                 '''
             }
         }
