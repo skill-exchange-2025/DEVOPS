@@ -28,7 +28,7 @@ pipeline {
                      echo "Git token set"
 
                      # Run Maven build
-                     mvn clean package -DskipTests
+                     mvn clean package
 
                      # CLEANUP - Remove token from Git config
                      git config --global --unset url."https://$GIT_TOKEN@github.com".insteadOf
@@ -49,7 +49,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    withSonarQubeEnv('scanner') {
+                    withSonarQubeEnv('scannner') {
                         sh 'mvn sonar:sonar -Dsonar.projectKey=your_project_key -Dsonar.host.url=http://192.168.56.10:9000/'
                     }
                 }
