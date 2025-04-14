@@ -14,97 +14,50 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-       stage('Build') {
-                   steps {
-                       echo 'Building the application...'
-                       sh 'mvn clean install'
-                   }
-                   }
-
-        stage('Unit Tests') {
-            steps {
-                sh 'mvn test'
-            }
-            post {
-                always {
-                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+            stage('Checkout') {
+                steps {
+                    checkout scm
                 }
             }
-        }
 
-        stage('SonarQube Analysis') {
-            steps {
-                sh """
-                mvn clean verify sonar:sonar \
-                  -Dsonar.projectKey=devops \
-                  -Dsonar.host.url=${SONAR_HOST_URL} \
-                  -Dsonar.login=${SONAR_TOKEN}
-                """
+            stage('Build') {
+                steps {
+                    echo 'Building the application...'
+                    sh 'mvn clean install'
+                }
             }
-        }
 
-        stage('Check Quality Gate') {
-            steps {
-                script {
-                    try {
-                        timeout(time: 1, unit: 'MINUTES') {
-                            sh """
-                            sleep 10
-                            TASK_STATUS=\$(curl -s -u "${SONAR_TOKEN}:" "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=tp-foyer" | grep -o '"status":"[^"]*"' | cut -d':' -f2 | tr -d '"')
-                            if [ "\$TASK_STATUS" = "ERROR" ]; then
-                                echo "Quality Gate failed!"
-                            else
-                                echo "Quality Gate passed!"
-                            fi
-                            """
+            stage('SonarQube Analysis') {
+                steps {
+                    script {
+                        withSonarQubeEnv('MySonarQubeServer') {
+                            sh 'mvn clean verify sonar:sonar'
                         }
-                    } catch (Exception e) {
-                        echo "Quality Gate check failed: ${e.message}"
                     }
                 }
             }
-        }
 
-        stage('Package') {
-            steps {
-                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml package -DskipTests'
-            }
-        }
-
-        stage('Publish to Nexus') {
-            steps {
-                script {
-                    try {
-                        withCredentials([usernamePassword(credentialsId: 'nexus-credentials',
-                                                          usernameVariable: 'NEXUS_USERNAME',
-                                                          passwordVariable: 'NEXUS_PASSWORD')]) {
-                            writeFile file: "${WORKSPACE}/.mvn-nexus-settings.xml", text: """
-                            <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                              xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
-                              <localRepository>${MAVEN_CACHE}</localRepository>
-                              <servers>
-                                <server>
-                                  <id>nexus</id>
-                                  <username>\${NEXUS_USERNAME}</username>
-                                  <password>\${NEXUS_PASSWORD}</password>
-                                </server>
-                              </servers>
-                            </settings>
-                            """
-                            sh "mvn -s ${WORKSPACE}/.mvn-nexus-settings.xml deploy -DskipTests"
+            stage('Check Quality Gate') {
+                steps {
+                    script {
+                        try {
+                            timeout(time: 1, unit: 'MINUTES') {
+                                sh """
+                                sleep 10
+                                TASK_STATUS=\$(curl -s -u "${SONAR_TOKEN}:" "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=devops" | grep -o '"status":"[^"]*"' | cut -d':' -f2 | tr -d '"')
+                                if [ "\$TASK_STATUS" = "ERROR" ]; then
+                                    echo "Quality Gate failed!"
+                                else
+                                    echo "Quality Gate passed!"
+                                fi
+                                """
+                            }
+                        } catch (Exception e) {
+                            echo "Quality Gate check failed: ${e.message}"
                         }
-                    } catch (Exception e) {
-                        echo "Failed to publish to Nexus: ${e.message}"
                     }
                 }
             }
-        }
 
         stage('Setup Docker Cache') {
             steps {
