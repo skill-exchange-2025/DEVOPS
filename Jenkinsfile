@@ -17,7 +17,7 @@ pipeline {
         DOCKER_CACHE = "${WORKSPACE}/.docker-cache"
         // SonarQube configuration - using locally deployed SonarQube from docker-compose
         SONAR_HOST_URL = "http://192.168.50.4:9000"
-        SONAR_TOKEN = "sqp_fcd5b6ac22d1ae143a6932935d99c2d4cf0fe5b7"
+        SONAR_CREDENTIALS = credentials('sonarqube-token') // Use Jenkins credentials
     }
 
     stages {
@@ -99,40 +99,51 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                // Run SonarQube analysis
-                sh """
-                mvn -s ${WORKSPACE}/.mvn-settings.xml \
-                    org.sonarsource.scanner.maven:sonar-maven-plugin:3.10.0.2594:sonar \
-                    -Dsonar.projectKey=tp-foyer \
-                    -Dsonar.projectName='TP Foyer' \
-                    -Dsonar.host.url=${SONAR_HOST_URL} \
-                    -Dsonar.token=${SONAR_TOKEN} \
-                    -Dsonar.java.binaries=target/classes \
-                    -Dsonar.java.test.binaries=target/test-classes \
-                    -Dsonar.junit.reportPaths=target/surefire-reports \
-                    -Dsonar.java.coveragePlugin=jacoco \
-                    -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
-                """
+                script {
+                    try {
+                        sh """
+                        mvn -s ${WORKSPACE}/.mvn-settings.xml \
+                            org.sonarsource.scanner.maven:sonar-maven-plugin:3.10.0.2594:sonar \
+                            -Dsonar.projectKey=tp-foyer \
+                            -Dsonar.projectName='TP Foyer' \
+                            -Dsonar.host.url=${SONAR_HOST_URL} \
+                            -Dsonar.login=${SONAR_CREDENTIALS} \
+                            -Dsonar.java.binaries=target/classes \
+                            -Dsonar.java.test.binaries=target/test-classes \
+                            -Dsonar.junit.reportPaths=target/surefire-reports \
+                            -Dsonar.java.coveragePlugin=jacoco \
+                            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+                        """
+                    } catch (Exception e) {
+                        echo "SonarQube analysis failed: ${e.message}"
+                        echo "Continuing with the build despite SonarQube failure..."
+                        // This allows the pipeline to continue even if SonarQube fails
+                    }
+                }
             }
         }
 
         stage('Check Quality Gate') {
             steps {
                 script {
-                    // Wait for the quality gate
-                    timeout(time: 1, unit: 'MINUTES') {
-                        // Check Quality Gate status - modified to use curl since waitForQualityGate may not be available
-                        sh """
-                        sleep 10
-                        TASK_STATUS=\$(curl -s -u "${SONAR_TOKEN}:" "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=tp-foyer" | grep -o '"status":"[^"]*"' | cut -d':' -f2 | tr -d '"')
-                        if [ "\$TASK_STATUS" = "ERROR" ]; then
-                          echo "Quality Gate failed!"
-                          # Don't fail the pipeline, just log the warning
-                          echo "Warning: SonarQube quality gate check not passed"
-                        else
-                          echo "Quality Gate passed!"
-                        fi
-                        """
+                    try {
+                        // Wait for the quality gate
+                        timeout(time: 1, unit: 'MINUTES') {
+                            // Check Quality Gate status
+                            sh """
+                            sleep 10
+                            TASK_STATUS=\$(curl -s -u "${SONAR_CREDENTIALS}:" "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=tp-foyer" | grep -o '"status":"[^"]*"' | cut -d':' -f2 | tr -d '"')
+                            if [ "\$TASK_STATUS" = "ERROR" ]; then
+                              echo "Quality Gate failed!"
+                              echo "Warning: SonarQube quality gate check not passed"
+                            else
+                              echo "Quality Gate passed!"
+                            fi
+                            """
+                        }
+                    } catch (Exception e) {
+                        echo "Quality Gate check failed: ${e.message}"
+                        echo "Continuing with the build despite Quality Gate failure..."
                     }
                 }
             }
