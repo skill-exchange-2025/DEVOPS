@@ -99,27 +99,12 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                script {
-                    try {
-                        sh """
-                        mvn -s ${WORKSPACE}/.mvn-settings.xml \
-                            org.sonarsource.scanner.maven:sonar-maven-plugin:3.10.0.2594:sonar \
-                            -Dsonar.projectKey=tp-foyer \
-                            -Dsonar.projectName='TP Foyer' \
-                            -Dsonar.host.url=${SONAR_HOST_URL} \
-                            -Dsonar.login=${SONAR_CREDENTIALS} \
-                            -Dsonar.java.binaries=target/classes \
-                            -Dsonar.java.test.binaries=target/test-classes \
-                            -Dsonar.junit.reportPaths=target/surefire-reports \
-                            -Dsonar.java.coveragePlugin=jacoco \
-                            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
-                        """
-                    } catch (Exception e) {
-                        echo "SonarQube analysis failed: ${e.message}"
-                        echo "Continuing with the build despite SonarQube failure..."
-                        // This allows the pipeline to continue even if SonarQube fails
-                    }
-                }
+                sh """
+                mvn clean verify sonar:sonar \
+                  -Dsonar.projectKey=devops \
+                  -Dsonar.host.url=http://192.168.50.4:9000 \
+                  -Dsonar.login=sqp_c50e8b62c7bc893bbef9701a014ffb2f25581519
+                  """
             }
         }
 
