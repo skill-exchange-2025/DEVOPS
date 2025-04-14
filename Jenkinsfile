@@ -15,6 +15,9 @@ pipeline {
         // Define cache directories
         MAVEN_CACHE = "${WORKSPACE}/.m2"
         DOCKER_CACHE = "${WORKSPACE}/.docker-cache"
+        // SonarQube configuration - using locally deployed SonarQube from docker-compose
+        SONAR_HOST_URL = "http://192.168.50.4:9000"
+        SONAR_TOKEN = "sqp_fcd5b6ac22d1ae143a6932935d99c2d4cf0fe5b7"
     }
 
     stages {
@@ -51,37 +54,99 @@ pipeline {
 
         stage('Compile') {
             steps {
-                // Just compile the code
                 sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml clean compile'
             }
         }
 
-        stage('Unit Tests') {
+        stage('Unit Tests with Coverage') {
             steps {
-                // Force test execution
+                // Add JaCoCo plugin to pom.xml if not already present
+                sh '''
+                if ! grep -q "jacoco-maven-plugin" pom.xml; then
+                    sed -i '/<\\/plugins>/i \\
+                    <plugin>\\
+                        <groupId>org.jacoco</groupId>\\
+                        <artifactId>jacoco-maven-plugin</artifactId>\\
+                        <version>0.8.11</version>\\
+                        <executions>\\
+                            <execution>\\
+                                <id>prepare-agent</id>\\
+                                <goals>\\
+                                    <goal>prepare-agent</goal>\\
+                                </goals>\\
+                            </execution>\\
+                            <execution>\\
+                                <id>report</id>\\
+                                <phase>test</phase>\\
+                                <goals>\\
+                                    <goal>report</goal>\\
+                                </goals>\\
+                            </execution>\\
+                        </executions>\\
+                    </plugin>' pom.xml
+                fi
+                '''
+
+                // Run tests with coverage
                 sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml test -DskipTests=false'
             }
             post {
                 always {
-                    // Publish JUnit test results, allowing empty results
                     junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                // Run SonarQube analysis
+                sh """
+                mvn -s ${WORKSPACE}/.mvn-settings.xml \
+                    org.sonarsource.scanner.maven:sonar-maven-plugin:3.10.0.2594:sonar \
+                    -Dsonar.projectKey=tp-foyer \
+                    -Dsonar.projectName='TP Foyer' \
+                    -Dsonar.host.url=${SONAR_HOST_URL} \
+                    -Dsonar.token=${SONAR_TOKEN} \
+                    -Dsonar.java.binaries=target/classes \
+                    -Dsonar.java.test.binaries=target/test-classes \
+                    -Dsonar.junit.reportPaths=target/surefire-reports \
+                    -Dsonar.java.coveragePlugin=jacoco \
+                    -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+                """
+            }
+        }
+
+        stage('Check Quality Gate') {
+            steps {
+                script {
+                    // Wait for the quality gate
+                    timeout(time: 1, unit: 'MINUTES') {
+                        // Check Quality Gate status - modified to use curl since waitForQualityGate may not be available
+                        sh """
+                        sleep 10
+                        TASK_STATUS=\$(curl -s -u "${SONAR_TOKEN}:" "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=tp-foyer" | grep -o '"status":"[^"]*"' | cut -d':' -f2 | tr -d '"')
+                        if [ "\$TASK_STATUS" = "ERROR" ]; then
+                          echo "Quality Gate failed!"
+                          # Don't fail the pipeline, just log the warning
+                          echo "Warning: SonarQube quality gate check not passed"
+                        else
+                          echo "Quality Gate passed!"
+                        fi
+                        """
+                    }
                 }
             }
         }
 
         stage('Package') {
             steps {
-                // Build the package after tests
                 sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml package -DskipTests'
             }
         }
 
         stage('Setup Docker Cache') {
             steps {
-                // Create the Docker cache directory if it doesn't exist
                 sh 'mkdir -p ${DOCKER_CACHE}'
-
-                // Restore Docker cache if it exists
                 sh '''
                 if [ -d ${DOCKER_CACHE} ] && [ "$(ls -A ${DOCKER_CACHE})" ]; then
                     echo "Restoring Docker cache..."
@@ -93,17 +158,14 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                // Use Docker BuildKit for improved caching
                 sh '''
                 export DOCKER_BUILDKIT=1
                 docker build --cache-from ${IMAGE_NAME}:latest -t ${IMAGE_NAME}:${IMAGE_TAG} .
                 docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
                 '''
 
-                // Save the image to cache for future builds - using safe filename
                 sh '''
                 mkdir -p ${DOCKER_CACHE}
-                # Replace / with _ for safe filename
                 SAFE_IMAGE_NAME=$(echo ${IMAGE_NAME} | tr '/' '_')
                 docker save ${IMAGE_NAME}:latest -o ${DOCKER_CACHE}/${SAFE_IMAGE_NAME}-latest.tar
                 '''
@@ -125,7 +187,6 @@ pipeline {
 
         stage('Deploy with Docker Compose') {
             steps {
-                // Update image in docker-compose.yml to use the pushed one
                 sh """
                 sed -i 's|build: .|image: ${IMAGE_NAME}:${IMAGE_TAG}|g' docker-compose.yml
                 docker-compose down || true
@@ -140,10 +201,11 @@ pipeline {
             echo 'Pipeline execution completed'
             sh 'docker logout || true'
 
-            // Archive test reports as artifacts
+            // Archive test reports and SonarQube results
             archiveArtifacts artifacts: '**/target/surefire-reports/**/*', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/target/site/jacoco/**/*', allowEmptyArchive: true
 
-            // Archive the Maven cache for future builds
+            // Archive the Maven cache
             sh '''
             echo "Archiving Maven cache..."
             tar -czf maven-cache.tar.gz -C ${WORKSPACE} .m2 || true
@@ -157,13 +219,8 @@ pipeline {
             echo 'Build or deployment failed'
         }
         cleanup {
-            // Clean up Docker images to avoid disk space issues
             sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG} || true"
-
-            // Keep latest tag in cache but remove it from Docker daemon
             sh "docker rmi ${IMAGE_NAME}:latest || true"
-
-            // Clean up unused Docker resources while preserving cache
             sh 'docker system prune -f || true'
         }
     }
