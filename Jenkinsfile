@@ -49,22 +49,51 @@ pipeline {
             }
         }
 
-        stage('Build') {
+        stage('Compile') {
             steps {
-                // Use Maven with the local repository cache
-                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml clean package -DskipTests'
+                // Just compile the code
+                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml clean compile'
             }
         }
 
-        stage('Run Tests') {
+        stage('Unit Tests') {
             steps {
-                // Run tests with caching
+                // Run unit tests only
                 sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml test'
             }
             post {
                 always {
+                    // Publish JUnit test results
                     junit '**/target/surefire-reports/*.xml'
+
+                    // Generate JaCoCo code coverage report
+                    jacoco(
+                        execPattern: '**/target/jacoco.exec',
+                        classPattern: '**/target/classes',
+                        sourcePattern: '**/src/main/java',
+                        exclusionPattern: '**/src/test*'
+                    )
                 }
+            }
+        }
+
+        stage('Integration Tests') {
+            steps {
+                // Run integration tests if they exist
+                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml verify -DskipUnitTests'
+            }
+            post {
+                always {
+                    // Publish integration test results
+                    junit '**/target/failsafe-reports/*.xml'
+                }
+            }
+        }
+
+        stage('Package') {
+            steps {
+                // Build the package after tests
+                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml package -DskipTests'
             }
         }
 
@@ -131,6 +160,19 @@ pipeline {
         always {
             echo 'Pipeline execution completed'
             sh 'docker logout || true'
+
+            // Archive test reports
+            archiveArtifacts artifacts: '**/target/surefire-reports/*.xml, **/target/failsafe-reports/*.xml', allowEmptyArchive: true
+
+            // Generate HTML test report
+            publishHTML(target: [
+                allowMissing: true,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'target/site/jacoco',
+                reportFiles: 'index.html',
+                reportName: 'JaCoCo Code Coverage'
+            ])
 
             // Archive the Maven cache for future builds
             sh '''
