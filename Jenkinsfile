@@ -23,23 +23,27 @@ pipeline {
             }
         }
 
-        stage('Build') {
-            steps {
-                withCredentials([string(credentialsId: 'b3b7ed13-f691-4ade-ba88-bdf7e68d6dc6', variable: 'GIT_TOKEN')]) {
-                    sh '''#!/bin/bash  # Single quotes prevent interpolation
-                        # Set Git config with token
-                        git config --global url."https://$GIT_TOKEN@github.com".insteadOf "https://github.com"
+     stage('Build') {
+         steps {
+             withCredentials([string(credentialsId: 'b3b7ed13-f691-4ade-ba88-bdf7e68d6dc6', variable: 'GIT_TOKEN')]) {
+                 sh '''#!/bin/bash
+                     # Ensure Git uses the token for authentication
+                     git config --global url."https://$GIT_TOKEN@github.com".insteadOf "https://github.com"
 
-                        # Build with Maven
-                        mvn clean package -DskipTests
+                     # Confirm that the token is being set correctly (optional, for debugging)
+                     echo "Git token set"
 
-                        # CLEANUP - Remove token from Git config
-                        git config --global --unset url."https://$GIT_TOKEN@github.com".insteadOf
-                    '''
-                }
-                stash includes: 'target/*.jar', name: 'app-jar'
-            }
-        }
+                     # Run Maven build
+                     mvn clean package -DskipTests
+
+                     # CLEANUP - Remove token from Git config
+                     git config --global --unset url."https://$GIT_TOKEN@github.com".insteadOf
+                 '''
+             }
+             stash includes: 'target/*.jar', name: 'app-jar'
+         }
+     }
+
 
         stage('SonarQube Analysis') {
             steps {
