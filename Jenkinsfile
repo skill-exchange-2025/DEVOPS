@@ -36,16 +36,16 @@ pipeline {
             }
         }
 
-        /*stage('SonarQube Analysis') {
+        stage('SonarQube Analysis') {
             steps {
                         sh """
                            mvn clean verify sonar:sonar \
-                             -Dsonar.projectKey=devops-project \
+                             -Dsonar.projectKey=devops \
                              -Dsonar.host.url=http://192.168.50.4:9000 \
                              -Dsonar.login=sqp_6a145dc3fca13f3f652be71eb683abce284f2f5c
                         """
             }
-        }*/
+        }
 
         stage('Docker Build and Push') {
             steps {
