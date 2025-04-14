@@ -9,8 +9,7 @@ pipeline {
         ARTIFACT_VERSION = "5.0.0"
         DOCKER_IMAGE = "aymenghazouani/4twin7-devops"
         DOCKER_CREDENTIALS_ID = "dockerhub-credentials-id" // Replace with your credentials ID
-        SONAR_TOKEN = "sqp_6a145dc3fca13f3f652be71eb683abce284f2f5c" // Replace with your SonarQube token
-    }
+     }
 
     stages {
         stage('Checkout') {
@@ -42,7 +41,7 @@ pipeline {
                            mvn clean verify sonar:sonar \
                              -Dsonar.projectKey=devops \
                              -Dsonar.host.url=http://192.168.50.4:9000 \
-                             -Dsonar.login=sqp_6a145dc3fca13f3f652be71eb683abce284f2f5c
+                             -Dsonar.login=sqp_b4441691290d2db60f4a11341faddeddacc02059
                         """
             }
         }
