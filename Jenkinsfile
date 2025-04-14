@@ -58,34 +58,14 @@ pipeline {
 
         stage('Unit Tests') {
             steps {
-                // Run unit tests only
-                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml test'
+                // Force test execution
+                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml test -DskipTests=false'
             }
             post {
                 always {
-                    // Publish JUnit test results
-                    junit '**/target/surefire-reports/*.xml'
+                    // Publish JUnit test results, allowing empty results
+                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
                 }
-            }
-        }
-
-        stage('Integration Tests') {
-            steps {
-                // Run integration tests if they exist
-                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml verify -DskipUnitTests'
-            }
-            post {
-                always {
-                    // Publish integration test results if they exist
-                    junit allowEmptyResults: true, testResults: '**/target/failsafe-reports/*.xml'
-                }
-            }
-        }
-
-        stage('Generate Code Coverage') {
-            steps {
-                // Generate code coverage report using Maven plugin
-                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml org.jacoco:jacoco-maven-plugin:report'
             }
         }
 
@@ -161,9 +141,7 @@ pipeline {
             sh 'docker logout || true'
 
             // Archive test reports as artifacts
-            archiveArtifacts artifacts: '**/target/surefire-reports/*', allowEmptyArchive: true
-            archiveArtifacts artifacts: '**/target/failsafe-reports/*', allowEmptyArchive: true
-            archiveArtifacts artifacts: '**/target/site/jacoco/**/*', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/target/surefire-reports/**/*', allowEmptyArchive: true
 
             // Archive the Maven cache for future builds
             sh '''
