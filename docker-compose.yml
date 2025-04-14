@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app:
-    image: aymenghazouani/tpfoyer:19
+    image: aymenghazouani/4twin7-devops:5.0.0
     container_name: tpfoyer-app
     ports:
       - "8089:8089"  # Expose app on port 8089
