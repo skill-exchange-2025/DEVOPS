@@ -10,7 +10,8 @@ pipeline {
         JAVA_HOME = '/usr/lib/jvm/java-17-openjdk-amd64'
         PATH = "${JAVA_HOME}/bin:${env.PATH}"
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
-        IMAGE_NAME = "farouksouei/tpfoyer"
+        DOCKER_IMAGE = "aymenghazouani/4twin7-devops"
+        ARTIFACT_VERSION = "5.0.0"
         IMAGE_TAG = "${env.BUILD_NUMBER}"
         MAVEN_CACHE = "${WORKSPACE}/.m2"
         DOCKER_CACHE = "${WORKSPACE}/.docker-cache"
