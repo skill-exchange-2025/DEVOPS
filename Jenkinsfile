@@ -7,6 +7,8 @@ pipeline {
         NEXUS_URL = "localhost:8081"
         NEXUS_REPOSITORY = "maven-releases"
         ARTIFACT_VERSION = "5.0.0"
+        DOCKER_IMAGE = "aymenghazouani/4twin7-devops"
+        DOCKER_CREDENTIALS_ID = "dockerhub-credentials-id" // Replace with your credentials ID
     }
 
     stages {
@@ -33,7 +35,6 @@ pipeline {
             }
         }
 
-
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
@@ -41,35 +42,21 @@ pipeline {
                 }
             }
         }
-/*
-        stage('Publish to Nexus') {
+
+        stage('Docker Build and Push') {
             steps {
                 script {
-                    def pom = readMavenPom file: 'pom.xml'
-                    def filesByGlob = findFiles(glob: "target/*.jar")
-                    def artifactPath = filesByGlob[0].path
-                    def artifactExists = fileExists artifactPath
-
-                    if(artifactExists) {
-                        nexusArtifactUploader(
-                            nexusVersion: NEXUS_VERSION,
-                            protocol: NEXUS_PROTOCOL,
-                            nexusUrl: NEXUS_URL,
-                            groupId: pom.groupId,
-                            version: ARTIFACT_VERSION,
-                            repository: NEXUS_REPOSITORY,
-                            credentialsId: NEXUS_CREDENTIAL_ID,
-                            artifacts: [
-                                [artifactId: '4TWIN7-devops',
-                                 classifier: '',
-                                 file: artifactPath,
-                                 type: 'jar']
-                            ]
-                        )
+                    def imageTag = "${DOCKER_IMAGE}:${ARTIFACT_VERSION}"
+                    sh "docker build -t ${imageTag} ."
+                    withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh '''
+                            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+                            docker push ${imageTag}
+                        '''
                     }
                 }
             }
-        }*/
+        }
     }
 
     post {
