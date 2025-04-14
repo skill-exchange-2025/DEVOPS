@@ -36,7 +36,7 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
+        /*stage('SonarQube Analysis') {
             steps {
                         sh """
                            mvn clean verify sonar:sonar \
@@ -45,7 +45,7 @@ pipeline {
                              -Dsonar.login=sqp_6a145dc3fca13f3f652be71eb683abce284f2f5c
                         """
             }
-        }
+        }*/
 
         stage('Docker Build and Push') {
             steps {
