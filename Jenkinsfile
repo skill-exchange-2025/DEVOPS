@@ -1,83 +1,35 @@
 pipeline {
     agent any
 
-    tools {
-        maven 'Maven 3.9.6'
-        jdk 'JAVA_HOME'
-    }
-
     environment {
-        JAVA_HOME = '/usr/lib/jvm/java-17-openjdk-amd64'
-        PATH = "${JAVA_HOME}/bin:${env.PATH}"
-        DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
-        DOCKER_IMAGE = "aymenghazouani/4twin7-devops"
+        NEXUS_VERSION = "nexus3"
+        NEXUS_PROTOCOL = "http"
+        NEXUS_URL = "localhost:8081"
+        NEXUS_REPOSITORY = "maven-releases"
         ARTIFACT_VERSION = "5.0.0"
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
-        MAVEN_CACHE = "${WORKSPACE}/.m2"
-        DOCKER_CACHE = "${WORKSPACE}/.docker-cache"
-        SONAR_HOST_URL = "http://192.168.50.4:9000"
+        DOCKER_IMAGE = "aymenghazouani/4twin7-devops"
+        DOCKER_CREDENTIALS_ID = "dockerhub-credentials-id"
         SONAR_TOKEN = credentials('sonarqube-token')
+
     }
 
     stages {
-        stage('Debug Environment') {
+        stage('Checkout') {
             steps {
-                sh 'echo "JAVA_HOME: $JAVA_HOME"'
-                sh 'echo "PATH: $PATH"'
-                sh 'java -version || true'
-                sh 'mvn -version || true'
-                sh 'docker --version || true'
+                checkout scm
             }
         }
 
-        stage('Clone Repository') {
-            steps {
-                git branch: 'mohamedfarouksouei-4twin7', url: 'https://github.com/skill-exchange-2025/DEVOPS.git'
-            }
-        }
+       stage('Build') {
+                   steps {
+                       echo 'Building the application...'
+                       sh 'mvn clean install'
+                   }
+                   }
 
-        stage('Cache Maven Dependencies') {
+        stage('Unit Tests') {
             steps {
-                sh 'mkdir -p ${MAVEN_CACHE}'
-                writeFile file: "${WORKSPACE}/.mvn-settings.xml", text: """
-                <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
-                  <localRepository>${MAVEN_CACHE}</localRepository>
-                </settings>
-                """
-            }
-        }
-
-        stage('Compile') {
-            steps {
-                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml clean compile'
-            }
-        }
-
-        stage('Unit Tests with Coverage') {
-            steps {
-                sh '''
-                if ! grep -q "jacoco-maven-plugin" pom.xml; then
-                    sed -i '/<\\/plugins>/i \\
-                    <plugin>\\
-                        <groupId>org.jacoco</groupId>\\
-                        <artifactId>jacoco-maven-plugin</artifactId>\\
-                        <version>0.8.11</version>\\
-                        <executions>\\
-                            <execution>\\
-                                <id>prepare-agent</id>\\
-                                <goals><goal>prepare-agent</goal></goals>\\
-                            </execution>\\
-                            <execution>\\
-                                <id>report</id>\\
-                                <phase>test</phase>\\
-                                <goals><goal>report</goal></goals>\\
-                            </execution>\\
-                        </executions>\\
-                    </plugin>' pom.xml
-                fi
-                '''
-                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml test -DskipTests=false'
+                sh 'mvn test'
             }
             post {
                 always {
