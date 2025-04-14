@@ -7,10 +7,6 @@ pipeline {
         NEXUS_URL = "localhost:8081"
         NEXUS_REPOSITORY = "maven-releases"
         ARTIFACT_VERSION = "5.0.0"
-
-        // Credentials binding
-        DOCKER_CREDENTIALS = credentials('dockerhub-credentials')
-        NEXUS_CREDENTIAL_ID = 'nexus-admin'
     }
 
     stages {
