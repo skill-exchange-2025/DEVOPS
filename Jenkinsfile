@@ -9,6 +9,7 @@ pipeline {
         ARTIFACT_VERSION = "5.0.0"
         DOCKER_IMAGE = "aymenghazouani/4twin7-devops"
         DOCKER_CREDENTIALS_ID = "dockerhub-credentials-id" // Replace with your credentials ID
+        SONAR_TOKEN = "sqp_a43bbd79cf113ee9b2f88f4113da6c1434689c13" // Replace with your SonarQube token
     }
 
     stages {
@@ -31,6 +32,21 @@ pipeline {
             post {
                 always {
                     junit 'target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    withCredentials([string(credentialsId: 'sonar-token-id', variable: 'SONAR_TOKEN')]) {
+                        sh """
+                            mvn sonar:sonar \
+                                -Dsonar.projectKey=your-project-key \
+                                -Dsonar.host.url=http://http://192.168.50.4:9000 \
+                                -Dsonar.login=${SONAR_TOKEN}
+                        """
+                    }
                 }
             }
         }
