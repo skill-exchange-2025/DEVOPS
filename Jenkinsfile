@@ -192,6 +192,40 @@ pipeline {
         }
     }
 
+    stage('Publish to Nexus') {
+        steps {
+            script {
+                try {
+                    withCredentials([usernamePassword(credentialsId: 'nexus-credentials',
+                                                    usernameVariable: 'NEXUS_USERNAME',
+                                                    passwordVariable: 'NEXUS_PASSWORD')]) {
+
+                        // Create settings.xml with Nexus credentials
+                        writeFile file: "${WORKSPACE}/.mvn-nexus-settings.xml", text: """
+                        <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+                          <localRepository>${MAVEN_CACHE}</localRepository>
+                          <servers>
+                            <server>
+                              <id>nexus</id>
+                              <username>\${NEXUS_USERNAME}</username>
+                              <password>\${NEXUS_PASSWORD}</password>
+                            </server>
+                          </servers>
+                        </settings>
+                        """
+
+                        // Deploy to Nexus
+                        sh "mvn -s ${WORKSPACE}/.mvn-nexus-settings.xml deploy -DskipTests"
+                    }
+                } catch (Exception e) {
+                    echo "Failed to publish to Nexus: ${e.message}"
+                    echo "Continuing with the build despite Nexus publication failure..."
+                }
+            }
+        }
+    }
+
     post {
         always {
             echo 'Pipeline execution completed'
