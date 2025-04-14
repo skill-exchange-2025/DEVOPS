@@ -50,6 +50,21 @@ pipeline {
             }
         }
 
+        stage('Docker Compose Deploy') {
+            steps {
+                script {
+                    def imageTag = "${DOCKER_IMAGE}:${ARTIFACT_VERSION}"
+                    withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh """
+                            echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
+                            docker pull ${imageTag}
+                            docker-compose down || true
+                            docker-compose up -d --force-recreate
+                        """
+                    }
+                }
+            }
+        }
     }
 
     post {
