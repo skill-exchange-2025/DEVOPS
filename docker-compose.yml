@@ -31,6 +31,8 @@ services:
       - sonarqube_logs:/opt/sonarqube/logs
     networks:
       - app-network
+    depends_on:
+      - sonardb
 
   sonardb:
     image: postgres:12
