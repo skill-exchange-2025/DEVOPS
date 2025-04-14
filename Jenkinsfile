@@ -41,14 +41,15 @@ pipeline {
                     def imageTag = "${DOCKER_IMAGE}:${ARTIFACT_VERSION}"
                     sh "docker build -t ${imageTag} ."
                     withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh '''
-                            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+                        sh """
+                            echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
                             docker push ${imageTag}
-                        '''
+                        """
                     }
                 }
             }
         }
+
     }
 
     post {
