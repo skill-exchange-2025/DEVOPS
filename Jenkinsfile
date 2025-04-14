@@ -104,7 +104,7 @@ pipeline {
                     sh 'curl -X GET http://localhost:8089/tpfoyer/etudiant/retrieve-all-etudiants'
                 }
             }
-        }
+        }/*
     }
 
     post {
@@ -114,5 +114,5 @@ pipeline {
         failure {
             echo 'Pipeline failed!'
         }
-    }*/
+    }
 }
