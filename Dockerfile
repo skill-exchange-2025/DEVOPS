@@ -1,13 +1,34 @@
-# Build stage
-FROM maven:3.9-eclipse-temurin-17 AS build
+# Build stage: Use Maven to build the application
+FROM maven:3.9-amazoncorretto-17 AS build
 WORKDIR /app
-COPY pom.xml .
-COPY src ./src
-RUN mvn package -DskipTests
 
-# Run stage
-FROM eclipse-temurin:17-jre
+# Copy pom.xml to resolve dependencies
+COPY pom.xml .
+
+# Add missing spring-expression dependency (if needed)
+RUN mvn dependency:get -Dartifact=org.springframework:spring-expression:6.1.13
+
+# Download all project dependencies (offline mode)
+RUN mvn dependency:go-offline
+
+# Copy source code
+COPY src ./src
+
+# Package the application
+RUN mvn clean package -DskipTests
+
+# Runtime stage: Use Amazon Corretto JDK 17 for running the application
+FROM amazoncorretto:17-alpine
 WORKDIR /app
-COPY --from=build /app/target/tp-foyer-5.0.0.jar app.jar
+
+# Copy the JAR from the build stage
+COPY --from=build /app/target/*.jar app.jar
+
+# Set environment variables (e.g., Spring profile)
+ENV SPRING_PROFILES_ACTIVE=docker
+
+# Expose the application port (make it customizable by ENV variable)
 EXPOSE 8089
-ENTRYPOINT ["java", "-jar", "app.jar"]
+
+# Run the application (make it more flexible with CMD)
+CMD ["java", "-jar", "app.jar"]
