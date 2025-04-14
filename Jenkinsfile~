@@ -5,6 +5,7 @@ pipeline {
     environment {
         DOCKER_IMAGE = 'sloumaaa333/devops-master-backend:1.0.0'
         COMPOSE_FILE = 'docker-compose.yml'
+        GIT_TOKEN=${GIT_TOKEN}
     }
 
     stages {
