@@ -9,7 +9,7 @@
         <relativePath/>
     </parent>
     <groupId>tn.esprit</groupId>
-    <artifactId>4TWIN7-devops</artifactId>
+    <artifactId>tp-foyer</artifactId>
     <version>5.0.0</version>
     <name>tp-foyer</name>
     <description>tp-foyer</description>
