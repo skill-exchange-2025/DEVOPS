@@ -13,7 +13,6 @@ pipeline {
         NEXUS_CREDENTIAL_ID = 'nexus-admin'
     }
 
-
     stages {
         stage('Checkout') {
             steps {
@@ -74,37 +73,6 @@ pipeline {
                 }
             }
         }
-/*
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t ${DOCKER_USERNAME}/YourName_G1_devops:${BUILD_NUMBER} .'
-                sh 'docker tag ${DOCKER_USERNAME}/YourName_G1_devops:${BUILD_NUMBER} ${DOCKER_USERNAME}/YourName_G1_devops:latest'
-            }
-        }
-
-        stage('Push Docker Image') {
-            steps {
-                sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
-                sh 'docker push ${DOCKER_USERNAME}/YourName_G1_devops:${BUILD_NUMBER}'
-                sh 'docker push ${DOCKER_USERNAME}/YourName_G1_devops:latest'
-            }
-        }
-
-        stage('Deploy with Docker Compose') {
-            steps {
-                sh 'docker-compose down || true'
-                sh 'docker-compose up -d'
-            }
-        }
-
-        stage('Test API') {
-            steps {
-                script {
-                    sleep(time: 30, unit: "SECONDS")
-                    sh 'curl -X GET http://localhost:8089/tpfoyer/etudiant/retrieve-all-etudiants'
-                }
-            }
-        }/*
     }
 
     post {
