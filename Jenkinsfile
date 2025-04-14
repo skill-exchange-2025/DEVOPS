@@ -12,127 +12,126 @@ pipeline {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
         IMAGE_NAME = "farouksouei/tpfoyer"
         IMAGE_TAG = "${env.BUILD_NUMBER}"
-        // Define cache directories
         MAVEN_CACHE = "${WORKSPACE}/.m2"
         DOCKER_CACHE = "${WORKSPACE}/.docker-cache"
-        // SonarQube configuration - using locally deployed SonarQube from docker-compose
         SONAR_HOST_URL = "http://192.168.50.4:9000"
-        SONAR_CREDENTIALS = credentials('sonarqube-token') // Use Jenkins credentials
+        SONAR_CREDENTIALS = credentials('sonarqube-token')
     }
 
     stages {
         stage('Debug Environment') {
-            steps {
-                sh 'echo "JAVA_HOME: $JAVA_HOME"'
-                sh 'echo "PATH: $PATH"'
-                sh 'java -version || true'
-                sh 'mvn -version || true'
-                sh 'docker --version || true'
-            }
-        }
-
-        stage('Clone Repository') {
-            steps {
-                git branch: 'mohamedfarouksouei-4twin7', url: 'https://github.com/skill-exchange-2025/DEVOPS.git'
-            }
-        }
-
-        stage('Cache Maven Dependencies') {
-            steps {
-                // Create the Maven cache directory if it doesn't exist
-                sh 'mkdir -p ${MAVEN_CACHE}'
-
-                // Create a Maven settings file for local repository caching
-                writeFile file: "${WORKSPACE}/.mvn-settings.xml", text: """
-                <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
-                  <localRepository>${MAVEN_CACHE}</localRepository>
-                </settings>
-                """
-            }
-        }
-
-        stage('Compile') {
-            steps {
-                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml clean compile'
-            }
-        }
-
-        stage('Unit Tests with Coverage') {
-            steps {
-                // Add JaCoCo plugin to pom.xml if not already present
-                sh '''
-                if ! grep -q "jacoco-maven-plugin" pom.xml; then
-                    sed -i '/<\\/plugins>/i \\
-                    <plugin>\\
-                        <groupId>org.jacoco</groupId>\\
-                        <artifactId>jacoco-maven-plugin</artifactId>\\
-                        <version>0.8.11</version>\\
-                        <executions>\\
-                            <execution>\\
-                                <id>prepare-agent</id>\\
-                                <goals>\\
-                                    <goal>prepare-agent</goal>\\
-                                </goals>\\
-                            </execution>\\
-                            <execution>\\
-                                <id>report</id>\\
-                                <phase>test</phase>\\
-                                <goals>\\
-                                    <goal>report</goal>\\
-                                </goals>\\
-                            </execution>\\
-                        </executions>\\
-                    </plugin>' pom.xml
-                fi
-                '''
-
-                // Run tests with coverage
-                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml test -DskipTests=false'
-            }
-            post {
-                always {
-                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
-                }
-            }
-        }
-
-        stage('SonarQube Analysis') {
-            steps {
-                sh """
-                mvn clean verify sonar:sonar \
-                  -Dsonar.projectKey=devops \
-                  -Dsonar.host.url=http://192.168.50.4:9000 \
-                  -Dsonar.login=sqp_c50e8b62c7bc893bbef9701a014ffb2f25581519
-                  """
-            }
-        }
-
-        stage('Check Quality Gate') {
-            steps {
-                script {
-                    try {
-                        // Wait for the quality gate
-                        timeout(time: 1, unit: 'MINUTES') {
-                            // Check Quality Gate status
-                            sh """
-                            sleep 10
-                            TASK_STATUS=\$(curl -s -u "${SONAR_CREDENTIALS}:" "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=tp-foyer" | grep -o '"status":"[^"]*"' | cut -d':' -f2 | tr -d '"')
-                            if [ "\$TASK_STATUS" = "ERROR" ]; then
-                              echo "Quality Gate failed!"
-                              echo "Warning: SonarQube quality gate check not passed"
-                            else
-                              echo "Quality Gate passed!"
-                            fi
-                            """
-                        }
-                    } catch (Exception e) {
-                        echo "Quality Gate check failed: ${e.message}"
-                        echo "Continuing with the build despite Quality Gate failure..."
+                    steps {
+                        sh 'echo "JAVA_HOME: $JAVA_HOME"'
+                        sh 'echo "PATH: $PATH"'
+                        sh 'java -version || true'
+                        sh 'mvn -version || true'
+                        sh 'docker --version || true'
                     }
                 }
-            }
-        }
+
+                stage('Clone Repository') {
+                    steps {
+                        git branch: 'mohamedfarouksouei-4twin7', url: 'https://github.com/skill-exchange-2025/DEVOPS.git'
+                    }
+                }
+
+                stage('Cache Maven Dependencies') {
+                    steps {
+                        // Create the Maven cache directory if it doesn't exist
+                        sh 'mkdir -p ${MAVEN_CACHE}'
+
+                        // Create a Maven settings file for local repository caching
+                        writeFile file: "${WORKSPACE}/.mvn-settings.xml", text: """
+                        <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+                          <localRepository>${MAVEN_CACHE}</localRepository>
+                        </settings>
+                        """
+                    }
+                }
+
+                stage('Compile') {
+                    steps {
+                        sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml clean compile'
+                    }
+                }
+
+                stage('Unit Tests with Coverage') {
+                    steps {
+                        // Add JaCoCo plugin to pom.xml if not already present
+                        sh '''
+                        if ! grep -q "jacoco-maven-plugin" pom.xml; then
+                            sed -i '/<\\/plugins>/i \\
+                            <plugin>\\
+                                <groupId>org.jacoco</groupId>\\
+                                <artifactId>jacoco-maven-plugin</artifactId>\\
+                                <version>0.8.11</version>\\
+                                <executions>\\
+                                    <execution>\\
+                                        <id>prepare-agent</id>\\
+                                        <goals>\\
+                                            <goal>prepare-agent</goal>\\
+                                        </goals>\\
+                                    </execution>\\
+                                    <execution>\\
+                                        <id>report</id>\\
+                                        <phase>test</phase>\\
+                                        <goals>\\
+                                            <goal>report</goal>\\
+                                        </goals>\\
+                                    </execution>\\
+                                </executions>\\
+                            </plugin>' pom.xml
+                        fi
+                        '''
+
+                        // Run tests with coverage
+                        sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml test -DskipTests=false'
+                    }
+                    post {
+                        always {
+                            junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+                        }
+                    }
+                }
+
+                stage('SonarQube Analysis') {
+                    steps {
+                        sh """
+                        mvn clean verify sonar:sonar \
+                          -Dsonar.projectKey=devops \
+                          -Dsonar.host.url=http://192.168.50.4:9000 \
+                          -Dsonar.login=sqp_c50e8b62c7bc893bbef9701a014ffb2f25581519
+                          """
+                    }
+                }
+
+                stage('Check Quality Gate') {
+                    steps {
+                        script {
+                            try {
+                                // Wait for the quality gate
+                                timeout(time: 1, unit: 'MINUTES') {
+                                    // Check Quality Gate status
+                                    sh """
+                                    sleep 10
+                                    TASK_STATUS=\$(curl -s -u "${SONAR_CREDENTIALS}:" "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=tp-foyer" | grep -o '"status":"[^"]*"' | cut -d':' -f2 | tr -d '"')
+                                    if [ "\$TASK_STATUS" = "ERROR" ]; then
+                                      echo "Quality Gate failed!"
+                                      echo "Warning: SonarQube quality gate check not passed"
+                                    else
+                                      echo "Quality Gate passed!"
+                                    fi
+                                    """
+                                }
+                            } catch (Exception e) {
+                                echo "Quality Gate check failed: ${e.message}"
+                                echo "Continuing with the build despite Quality Gate failure..."
+                            }
+                        }
+                    }
+                }
+
 
         stage('Package') {
             steps {
@@ -140,6 +139,41 @@ pipeline {
             }
         }
 
+        stage('Publish to Nexus') {
+            steps {
+                script {
+                    try {
+                        withCredentials([usernamePassword(credentialsId: 'nexus-credentials',
+                                                          usernameVariable: 'NEXUS_USERNAME',
+                                                          passwordVariable: 'NEXUS_PASSWORD')]) {
+
+                            // Create settings.xml with Nexus credentials
+                            writeFile file: "${WORKSPACE}/.mvn-nexus-settings.xml", text: """
+                            <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                              xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+                              <localRepository>${MAVEN_CACHE}</localRepository>
+                              <servers>
+                                <server>
+                                  <id>nexus</id>
+                                  <username>\${NEXUS_USERNAME}</username>
+                                  <password>\${NEXUS_PASSWORD}</password>
+                                </server>
+                              </servers>
+                            </settings>
+                            """
+
+                            // Deploy to Nexus
+                            sh "mvn -s ${WORKSPACE}/.mvn-nexus-settings.xml deploy -DskipTests"
+                        }
+                    } catch (Exception e) {
+                        echo "Failed to publish to Nexus: ${e.message}"
+                        echo "Continuing with the build despite Nexus publication failure..."
+                    }
+                }
+            }
+        }
+
+        // Continue with Docker stages...
         stage('Setup Docker Cache') {
             steps {
                 sh 'mkdir -p ${DOCKER_CACHE}'
@@ -192,50 +226,14 @@ pipeline {
         }
     }
 
-    stage('Publish to Nexus') {
-        steps {
-            script {
-                try {
-                    withCredentials([usernamePassword(credentialsId: 'nexus-credentials',
-                                                    usernameVariable: 'NEXUS_USERNAME',
-                                                    passwordVariable: 'NEXUS_PASSWORD')]) {
-
-                        // Create settings.xml with Nexus credentials
-                        writeFile file: "${WORKSPACE}/.mvn-nexus-settings.xml", text: """
-                        <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
-                          <localRepository>${MAVEN_CACHE}</localRepository>
-                          <servers>
-                            <server>
-                              <id>nexus</id>
-                              <username>\${NEXUS_USERNAME}</username>
-                              <password>\${NEXUS_PASSWORD}</password>
-                            </server>
-                          </servers>
-                        </settings>
-                        """
-
-                        // Deploy to Nexus
-                        sh "mvn -s ${WORKSPACE}/.mvn-nexus-settings.xml deploy -DskipTests"
-                    }
-                } catch (Exception e) {
-                    echo "Failed to publish to Nexus: ${e.message}"
-                    echo "Continuing with the build despite Nexus publication failure..."
-                }
-            }
-        }
-    }
-
     post {
         always {
             echo 'Pipeline execution completed'
             sh 'docker logout || true'
 
-            // Archive test reports and SonarQube results
             archiveArtifacts artifacts: '**/target/surefire-reports/**/*', allowEmptyArchive: true
             archiveArtifacts artifacts: '**/target/site/jacoco/**/*', allowEmptyArchive: true
 
-            // Archive the Maven cache
             sh '''
             echo "Archiving Maven cache..."
             tar -czf maven-cache.tar.gz -C ${WORKSPACE} .m2 || true
