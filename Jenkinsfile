@@ -28,10 +28,11 @@ pipeline {
             }
             post {
                 always {
-                    junit '.xml'
+                    junit 'target/surefire-reports/*.xml'
                 }
             }
         }
+
 
         stage('SonarQube Analysis') {
             steps {
