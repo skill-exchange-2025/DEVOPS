@@ -15,13 +15,7 @@ pipeline {
             }
         }
 
-        stage('Load Git Token') {
-            steps {
-                script {
-                    echo "Git Token loaded from Jenkins credentials."
-                }
-            }
-        }
+
 
      stage('Build') {
          steps {
@@ -43,6 +37,13 @@ pipeline {
              stash includes: 'target/*.jar', name: 'app-jar'
          }
      }
+     stage('Load Git Token') {
+                 steps {
+                     script {
+                         echo "Git Token loaded from Jenkins credentials."
+                     }
+                 }
+             }
 
 
         stage('SonarQube Analysis') {
