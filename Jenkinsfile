@@ -38,14 +38,17 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                        sh """
-                           mvn clean verify sonar:sonar \
-                             -Dsonar.projectKey=devops-project \
-                             -Dsonar.host.url=http://192.168.50.4:9000 \
-                             -Dsonar.login=sqp_e12408bf4802f707841472bbe38a66b132ba1402
-                        """
+                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                    sh """
+                        mvn clean verify sonar:sonar \
+                          -Dsonar.projectKey=devops-project \
+                          -Dsonar.host.url=http://192.168.50.4:9000 \
+                          -Dsonar.login=$SONAR_TOKEN
+                    """
+                }
             }
         }
+
 
         stage('Docker Build and Push') {
             steps {
