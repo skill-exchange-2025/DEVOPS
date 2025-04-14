@@ -90,78 +90,17 @@ pipeline {
             }
             post {
                 always {
-                    junit allowEmptyResults: true, testResults: '*/target/surefire-reports/.xml'
+                    junit allowEmptyResults: true, testResults: '*/target/surefire-reports/*.xml'
                 }
-            }
-        }
-
-        stage('SonarQube Analysis') {
-            steps {
-                sh """
-                mvn clean verify sonar:sonar \
-                  -Dsonar.projectKey=devops \
-                  -Dsonar.host.url=${SONAR_HOST_URL} \
-                  -Dsonar.login=${SONAR_CREDENTIALS}
-                """
-            }
-        }
-
-        stage('Check Quality Gate') {
-            steps {
-                script {
-                    try {
-                        // Wait for the quality gate
-                        timeout(time: 1, unit: 'MINUTES') {
-                            // Check Quality Gate status
-                            sh """
-                            sleep 10
-                            TASK_STATUS=\$(curl -s -u "${SONAR_CREDENTIALS}:" "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=tp-foyer" | grep -o '"status":"[^"]*"' | cut -d':' -f2 | tr -d '"')
-                            if [ "\$TASK_STATUS" = "ERROR" ]; then
-                              echo "Quality Gate failed!"
-                              echo "Warning: SonarQube quality gate check not passed"
-                            else
-                              echo "Quality Gate passed!"
-                            fi
-                            """
-                        }
-                    } catch (Exception e) {
-                        echo "Quality Gate check failed: ${e.message}"
-                        echo "Continuing with the build despite Quality Gate failure..."
-                    }
-                }
-            }
-        }
-
-        stage('Package') {
-            steps {
-                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml package -DskipTests'
-            }
-        }
-
-        stage('Setup Docker Cache') {
-            steps {
-                sh 'mkdir -p ${DOCKER_CACHE}'
-                sh '''
-                if [ -d ${DOCKER_CACHE} ] && [ "$(ls -A ${DOCKER_CACHE})" ]; then
-                    echo "Restoring Docker cache..."
-                    find ${DOCKER_CACHE} -name "*.tar" -exec docker load -i {} \\;
-                fi
-                '''
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 sh '''
-                export DOCKER_BUILDKIT=1
-                docker build --cache-from ${IMAGE_NAME}:latest -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                echo "Building the Docker image: ${IMAGE_NAME}"
+                docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
                 docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
-                '''
-
-                sh '''
-                mkdir -p ${DOCKER_CACHE}
-                SAFE_IMAGE_NAME=$(echo ${IMAGE_NAME} | tr '/' '_')
-                docker save ${IMAGE_NAME}:latest -o ${DOCKER_CACHE}/${SAFE_IMAGE_NAME}-latest.tar
                 '''
             }
         }
@@ -188,32 +127,87 @@ pipeline {
                 """
             }
         }
-    }
 
-    post {
-        always {
-            echo 'Pipeline execution completed'
-            sh 'docker logout || true'
+        stage('SonarQube Analysis') {
+            steps {
+                sh """
+                mvn clean verify sonar:sonar \
+                  -Dsonar.projectKey=devops \
+                  -Dsonar.host.url=${SONAR_HOST_URL} \
+                  -Dsonar.login=${SONAR_CREDENTIALS}
+                """
+            }
+        }
 
-            archiveArtifacts artifacts: '*/target/surefire-reports/**/', allowEmptyArchive: true
-            archiveArtifacts artifacts: '*/target/site/jacoco/**/', allowEmptyArchive: true
 
-            sh '''
-            echo "Archiving Maven cache..."
-            tar -czf maven-cache.tar.gz -C ${WORKSPACE} .m2 || true
-            '''
-            archiveArtifacts artifacts: 'maven-cache.tar.gz', allowEmptyArchive: true
+        stage('Check Quality Gate') {
+            steps {
+                script {
+                    try {
+                        // Wait for the quality gate
+                        timeout(time: 1, unit: 'MINUTES') {
+                            // Check Quality Gate status
+                            sh """
+                            sleep 10
+                            TASK_STATUS=\$(curl -s -u "${SONAR_CREDENTIALS}:" "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=devops" | grep -o '"status":"[^"]*"' | cut -d':' -f2 | tr -d '"')
+                            if [ "\$TASK_STATUS" = "ERROR" ]; then
+                              echo "Quality Gate failed!"
+                            else
+                              echo "Quality Gate passed!"
+                            fi
+                            """
+                        }
+                    } catch (Exception e) {
+                        echo "Quality Gate check failed: ${e.message}"
+                        echo "Continuing with the build despite Quality Gate failure..."
+                    }
+                }
+            }
         }
-        success {
-            echo 'Successfully built and deployed the application'
+
+        stage('Package') {
+            steps {
+                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml package -DskipTests'
+            }
         }
-        failure {
-            echo 'Build or deployment failed'
+
+        stage('Setup Docker Cache') {
+            steps {
+                sh 'mkdir -p ${DOCKER_CACHE}'
+                sh '''
+                if [ -d ${DOCKER_CACHE} ] && [ "$(ls -A ${DOCKER_CACHE})" ]; then
+                    echo "Restoring Docker cache..."
+                    find ${DOCKER_CACHE} -name "*.tar" -exec docker load -i {} \;
+                fi
+                '''
+            }
         }
-        cleanup {
-            sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG} || true"
-            sh "docker rmi ${IMAGE_NAME}:latest || true"
-            sh 'docker system prune -f || true'
+
+        post {
+            always {
+                echo 'Pipeline execution completed'
+                sh 'docker logout || true'
+
+                archiveArtifacts artifacts: '*/target/surefire-reports/**/', allowEmptyArchive: true
+                archiveArtifacts artifacts: '*/target/site/jacoco/**/', allowEmptyArchive: true
+
+                sh '''
+                echo "Archiving Maven cache..."
+                tar -czf maven-cache.tar.gz -C ${WORKSPACE} .m2 || true
+                '''
+                archiveArtifacts artifacts: 'maven-cache.tar.gz', allowEmptyArchive: true
+            }
+            success {
+                echo 'Successfully built and deployed the application'
+            }
+            failure {
+                echo 'Build or deployment failed'
+            }
+            cleanup {
+                sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG} || true"
+                sh "docker rmi ${IMAGE_NAME}:latest || true"
+                sh 'docker system prune -f || true'
+            }
         }
     }
 }
