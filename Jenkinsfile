@@ -30,7 +30,7 @@ pipeline {
 
         stage('Build Spring Boot Project') {
             steps {
-                sh 'mvn clean package '
+                sh 'mvn clean package'
             }
         }
 
@@ -42,6 +42,19 @@ pipeline {
                         -Dsonar.projectKey=tpfoyer \
                         -Dsonar.host.url=$SONAR_HOST_URL \
                         -Dsonar.login=$TOKEN
+                    """
+                }
+            }
+        }
+
+        // ✅ NEW STAGE: Deploy JAR to Nexus
+        stage('Deploy to Nexus') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
+                    sh """
+                        mvn deploy -DskipTests \
+                          -Dnexus.username=$NEXUS_USER \
+                          -Dnexus.password=$NEXUS_PASS
                     """
                 }
             }
