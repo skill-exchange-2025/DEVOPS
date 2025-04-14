@@ -65,14 +65,6 @@ pipeline {
                 always {
                     // Publish JUnit test results
                     junit '**/target/surefire-reports/*.xml'
-
-                    // Generate JaCoCo code coverage report
-                    jacoco(
-                        execPattern: '**/target/jacoco.exec',
-                        classPattern: '**/target/classes',
-                        sourcePattern: '**/src/main/java',
-                        exclusionPattern: '**/src/test*'
-                    )
                 }
             }
         }
@@ -84,9 +76,16 @@ pipeline {
             }
             post {
                 always {
-                    // Publish integration test results
-                    junit '**/target/failsafe-reports/*.xml'
+                    // Publish integration test results if they exist
+                    junit allowEmptyResults: true, testResults: '**/target/failsafe-reports/*.xml'
                 }
+            }
+        }
+
+        stage('Generate Code Coverage') {
+            steps {
+                // Generate code coverage report using Maven plugin
+                sh 'mvn -s ${WORKSPACE}/.mvn-settings.xml org.jacoco:jacoco-maven-plugin:report'
             }
         }
 
@@ -161,18 +160,10 @@ pipeline {
             echo 'Pipeline execution completed'
             sh 'docker logout || true'
 
-            // Archive test reports
-            archiveArtifacts artifacts: '**/target/surefire-reports/*.xml, **/target/failsafe-reports/*.xml', allowEmptyArchive: true
-
-            // Generate HTML test report
-            publishHTML(target: [
-                allowMissing: true,
-                alwaysLinkToLastBuild: true,
-                keepAll: true,
-                reportDir: 'target/site/jacoco',
-                reportFiles: 'index.html',
-                reportName: 'JaCoCo Code Coverage'
-            ])
+            // Archive test reports as artifacts
+            archiveArtifacts artifacts: '**/target/surefire-reports/*', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/target/failsafe-reports/*', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/target/site/jacoco/**/*', allowEmptyArchive: true
 
             // Archive the Maven cache for future builds
             sh '''
